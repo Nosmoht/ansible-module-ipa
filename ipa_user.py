@@ -72,18 +72,18 @@ class IPAClient:
             user['title'] = title
 
         data = {'method': 'user_add', 'params': [[uid], user]}
-        #self.module.fail_json(msg=json.dumps(data))
         url = '{base_url}/session/json'.format(base_url=self.get_base_url())
 
         try:
             r = requests.post(url=url, data=json.dumps(data), headers=self.headers, verify=False, cookies=self.cookies)
             r.raise_for_status()
-            resp = json.loads(r.content)
-            err = resp.get('error')
-            if err is not None:
-                self.module.fail_json(msg=err)
         except Exception as e:
             self.module.fail_json(msg=e.message)
+
+        resp = json.loads(r.content)
+        err = resp.get('error')
+        if err is not None:
+            self.module.fail_json(msg=err)
 
 
 def ensure(module, client):
@@ -128,10 +128,12 @@ def main():
                        username=module.params['ipa_user'],
                        password=module.params['ipa_pass'],
                        protocol=module.params['ipa_prot'])
-    client.login()
-
-    changed, user = ensure(module, client)
-    module.exit_json(changed=changed, user=user)
+    try:
+        client.login()
+        changed, user = ensure(module, client)
+        module.exit_json(changed=changed, user=user)
+    except Exception as e:
+        module.fail_json(msg=e.message)
 
 
 from ansible.module_utils.basic import AnsibleModule
