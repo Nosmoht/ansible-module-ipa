@@ -1,6 +1,99 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+DOCUMENTATION = '''
+---
+module: ipa_user
+short_description: Manager IPA users
+description:
+- Add, modify and delete user within IPA server
+options:
+  displayname:
+    description: Display name
+    required: false
+  givenname:
+    description: First name
+    required: false
+  loginshell:
+    description: Login shell
+    required: false
+  mail:
+    description: Mail address
+    required: false
+  password:
+    description: Password
+    required: false
+  sn:
+    description: Surname
+    required: false
+  sshpubkeyfp:
+    description: Public SSH key
+    required: false
+  state:
+    description: State to ensure
+    required: false
+    default: "present"
+  telephonenumber:
+    description: Telephone number
+    required: false
+  title:
+    description: Title
+    required: false
+  uid:
+    description: uid of the user
+    required: true
+    aliases: ["name"]
+  ipa_port:
+    description: Port of IPA server
+    required: false
+    default: 443
+  ipa_host:
+    description: IP or hostname of IPA server
+    required: false
+    default: "ipa.example.com"
+  ipa_user:
+    description: Administrative account used on IPA server
+    required: false
+    default: "admin"
+  ipa_pass:
+    description: Password of administrative user
+    required: true
+  ipa_prot:
+    description: Protocol used by IPA server
+    required: false
+    default: "https"
+    choices: ["http", "https"]
+'''
+
+EXAMPLES = '''
+# Ensure pinky is present
+- ipa_user:
+    name: pinky
+    state: present
+    givenname: Pinky
+    sn: Acme
+    mail: pinky@acme.com
+    telephonenumber: '+555123456'
+    ip_host: ipa.example.com
+    ip_user: admin
+    ip_pass: topsecret
+
+# Ensure brain is absent
+- ipa_user:
+    name: brain
+    state: absent
+    ip_host: ipa.example.com
+    ip_user: admin
+    ip_pass: topsecret
+'''
+
+RETURN = '''
+user:
+  description: JSON data of user as returned by IPA
+  returned: if found
+  type: string
+'''
+
 import json
 
 import requests
