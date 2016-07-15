@@ -74,6 +74,9 @@ EXAMPLES = '''
     sn: Acme
     mail: pinky@acme.com
     telephonenumber: '+555123456'
+    sshpubkeyfp:
+    - ssh-rsa ....
+    - ssh-dsa ....
     ip_host: ipa.example.com
     ip_user: admin
     ip_pass: topsecret
