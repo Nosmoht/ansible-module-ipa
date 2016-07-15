@@ -126,23 +126,23 @@ class IPAClient:
             s = requests.post(url=url, data=data, headers=headers, verify=False)
             s.raise_for_status()
         except Exception as e:
-            self.module.fail_json(msg=e.message)
+            self.module.fail_json(msg='error on login: {}'.format(e.message))
         self.cookies = s.cookies
 
     def find_user(self, name):
         url = '{base_url}/session/json'.format(base_url=self.get_base_url())
-        data = {'method': 'user_find', 'params': [[str(name)], {}], 'id': 0}
+        data = {'method': 'user_find', 'params': [[name], {}], 'id': 0}
 
         try:
             r = requests.post(url=url, data=json.dumps(data), headers=self.headers, cookies=self.cookies, verify=False)
             r.raise_for_status()
         except Exception as e:
-            self.module.fail_json(msg=e.message)
+            self.module.fail_json(msg='error on post user_find request: {}'.format(e.message))
 
         resp = json.loads(r.content)
         err = resp.get('error')
         if err is not None:
-            self.module.fail_json(msg=err)
+            self.module.fail_json(msg='error in user_del respsone: {}'.format(err))
 
         return resp.get('result').get('result')
 
@@ -171,12 +171,27 @@ class IPAClient:
             r = requests.post(url=url, data=json.dumps(data), headers=self.headers, verify=False, cookies=self.cookies)
             r.raise_for_status()
         except Exception as e:
-            self.module.fail_json(msg=e.message)
+            self.module.fail_json(msg='error while posting user_add request: {}'.format(e.message))
 
         resp = json.loads(r.content)
         err = resp.get('error')
         if err is not None:
             self.module.fail_json(msg=err)
+
+    def del_user(self, uid):
+        data = {'method': 'user_del', 'params': [[uid], {}]}
+        url = '{base_url}/session/json'.format(base_url=self.get_base_url())
+
+        try:
+            r = requests.post(url=url, data=json.dumps(data), headers=self.headers, verify=False, cookies=self.cookies)
+            r.raise_for_status()
+        except Exception as e:
+            self.module.fail_json(msg='error while posting user_del request: {}'.format(e.message))
+
+        resp = json.loads(r.content)
+        err = resp.get('error')
+        if err is not None:
+            self.module.fail_json(msg='error in user_del respsone: {}'.format(err))
 
 
 def ensure(module, client):
@@ -184,11 +199,17 @@ def ensure(module, client):
     name = module.params['name']
 
     user = client.find_user(name=name)
-    if not user and state == 'present':
-        client.add_user(name, givenname=module.params.get('givenname'), loginshell=module.params['loginshell'],
-                        mail=module.params['mail'], sn=module.params['sn'], sshpubkeyfp=module.params['sshpubkeyfp'],
-                        telephonenumber=module.params['telephonenumber'], title=module.params['title'])
-        return True, client.find_user(name=name)
+    if not user:
+        if state == 'present':
+            client.add_user(name, givenname=module.params.get('givenname'), loginshell=module.params['loginshell'],
+                            mail=module.params['mail'], sn=module.params['sn'],
+                            sshpubkeyfp=module.params['sshpubkeyfp'],
+                            telephonenumber=module.params['telephonenumber'], title=module.params['title'])
+            return True, client.find_user(name=name)
+    else:
+        if state == 'absent':
+            client.del_user(name)
+            return True, None
     return False, user
 
 
