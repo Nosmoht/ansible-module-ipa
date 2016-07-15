@@ -27,7 +27,7 @@ options:
     description: Surname
     required: false
   sshpubkeyfp:
-    description: Public SSH key
+    description: List of public SSH key
     required: false
   state:
     description: State to ensure
@@ -142,7 +142,7 @@ class IPAClient:
         resp = json.loads(r.content)
         err = resp.get('error')
         if err is not None:
-            self.module.fail_json(msg='error in user_del respsone: {}'.format(err))
+            self.module.fail_json(msg='error in user_find response: {}'.format(err))
 
         return resp.get('result').get('result')
 
@@ -191,7 +191,7 @@ class IPAClient:
         resp = json.loads(r.content)
         err = resp.get('error')
         if err is not None:
-            self.module.fail_json(msg='error in user_del respsone: {}'.format(err))
+            self.module.fail_json(msg='error in user_del response: {}'.format(err))
 
 
 def ensure(module, client):
@@ -222,8 +222,8 @@ def main():
             mail=dict(type='str', required=False),
             sn=dict(type='str', required=False),
             uid=dict(type='str', required=True, aliases=['name']),
-            password=dict(type='str', required=False),
-            sshpubkeyfp=dict(type='str', required=False),
+            password=dict(type='str', required=False, no_log=True),
+            sshpubkeyfp=dict(type='list', required=False),
             state=dict(type='str', required=False, default='present', choices=['present', 'absent']),
             telephonenumber=dict(type='str', required=False),
             title=dict(type='str', required=False),
@@ -231,7 +231,7 @@ def main():
             ipa_host=dict(type='str', required=False, default='ipa.example.com'),
             ipa_port=dict(type='int', required=False, default=443),
             ipa_user=dict(type='str', required=False, default='admin'),
-            ipa_pass=dict(type='str', required=True),
+            ipa_pass=dict(type='str', required=True, no_log=True),
         ),
         supports_check_mode=True,
     )
