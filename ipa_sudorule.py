@@ -56,13 +56,26 @@ class IPAClient:
     def sudorule_find(self, name):
         return self._post_json(method='sudorule_find', name=name)
 
-    def sudorule_add(self, name, description=None, ipasudoopt=None):
+    def sudorule_add(self, name, description=None):
         sudorule = {}
-        if ipasudoopt is not None:
-            sudorule['ipasudoopt'] = ipasudoopt
         if description is not None:
             sudorule['description'] = description
         return self._post_json(method='sudorule_add', name=name, item=sudorule)
+
+    def sudorule_add_option(self, name, ipasudoopt):
+        data = {'ipasudoopt': ipasudoopt}
+        return self._post_json(method='sudorule_add_option', name=name, item=data)
+
+    def sudorule_add_host(self, name, host):
+        data = {'host': host}
+        return self._post_json(method='sudorule_add_host', name=name, item=data)
+
+    def sudorule_add_allow_command(self, name, cmd):
+        data = {'sudocmd': cmd}
+        return self._post_json(method='sudorule_add_allow_command', name=name, item=data)
+
+    def sudorule_mod(self, name, item):
+        return self._post_json(method='sudorule_mod', name=name, item=item)
 
     def sudorule_add_user(self, name, groups=None, users=None):
         data = {}
@@ -85,16 +98,38 @@ def ensure(module, client):
         if state == 'present':
             if module.check_mode:
                 return True, None
-            client.sudorule_add(name=name, description=module.params['description'],
-                                ipasudoopt=module.params['sudoopt'])
+            client.sudorule_add(name=name, description=module.params['description'])
+
+            ipasudooptions = module.params['sudoopt']
+            if ipasudooptions is not None:
+                for sudooption in ipasudooptions:
+                    client.sudorule_add_option(name=name, ipasudoopt=sudooption)
+
+            users = module.params['users']
+            if users is not None:
+                client.sudorule_add_user(name=name, users=users)
 
             groups = module.params['groups']
             if groups is not None:
                 client.sudorule_add_user(name=name, groups=groups)
 
-            users = module.params['users']
-            if users is not None:
-                client.sudorule_add_user(name=name, users=users)
+            hostcategory = module.params['hostcategory']
+            if hostcategory is not None:
+                data = {'hostcategory': hostcategory}
+                client.sudorule_mod(name=name, item=data)
+
+            host = module.params['host']
+            if host is not None:
+                client.sudorule_add_host(name=name, hosts=host)
+
+            cmdcategory = module.params['cmdcategory']
+            if cmdcategory is not None:
+                data = {'cmdcategory': cmdcategory}
+                client.sudorule_mod(name=name, item=data)
+
+            cmd = module.params['cmd']
+            if cmd is not None:
+                client.sudorule_add_allow_command(name=name, cmd=cmd)
 
             return True, client.sudorule_find(name)
     else:
@@ -109,10 +144,14 @@ def ensure(module, client):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
+            cmdcategory=dict(type='str', required=False),
+            cmd=dict(type='list', required=False),
             cn=dict(type='str', required=True, aliases=['name']),
             description=dict(type='str', required=False),
             groups=dict(type='list', required=False),
-            sudoopt=dict(type='str', required=False),
+            hostcategory=dict(type='str', required=False),
+            host=dict(type='list', required=False),
+            sudoopt=dict(type='list', required=False),
             state=dict(type='str', required=False, default='present', choices=['present', 'absent']),
             users=dict(type='str', required=False),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
