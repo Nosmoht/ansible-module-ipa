@@ -35,12 +35,17 @@ Ensure group is absent
 ```
 
 ## Sudo rule
-Ensure sudo rule is present
+Ensure sudo rule is present thats allows all members of group ipausers as well as user pinky
+to run every command on every hosts with sudo without being asked for a password.
 ```yaml
 - ipa_sudorule:
     name: sudo_all_nopasswd
     description: Allow to run every command with sudo without password
     sudoopt: '!authenticate'
+    groups:
+    - ipausers
+    users:
+    - pinky
     ip_host: ipa.example.com
     ip_user: admin
     ip_pass: topsecret

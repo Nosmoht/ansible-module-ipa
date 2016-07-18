@@ -35,22 +35,26 @@ class IPAClient:
             self.module.fail_json(msg='error on login: {}'.format(e.message))
         self.cookies = s.cookies
 
-    def sudorule_find(self, name):
+    def _post_json(self, method, name, item={}):
         url = '{base_url}/session/json'.format(base_url=self.get_base_url())
-        data = {'method': 'sudorule_find', 'params': [[name], {}]}
-
+        data = {'method': method, 'params': [[name], item]}
         try:
             r = requests.post(url=url, data=json.dumps(data), headers=self.headers, cookies=self.cookies, verify=False)
             r.raise_for_status()
         except Exception as e:
-            self.module.fail_json(msg='error on post sudorule_find request: {}'.format(e.message))
+            self.module.fail_json(msg='error on post {method} request: {err}'.format(method=method, err=e.message))
 
         resp = json.loads(r.content)
         err = resp.get('error')
         if err is not None:
-            self.module.fail_json(msg='error in sudorule_find response: {}'.format(err))
+            self.module.fail_json(msg='error in {method} response: {err}'.format(method=method, err=err))
 
-        return resp.get('result').get('result')
+        if 'result' in resp:
+            return resp.get('result').get('result')
+        return None
+
+    def sudorule_find(self, name):
+        return self._post_json(method='sudorule_find', name=name)
 
     def sudorule_add(self, name, description=None, ipasudoopt=None):
         sudorule = {}
@@ -58,35 +62,18 @@ class IPAClient:
             sudorule['ipasudoopt'] = ipasudoopt
         if description is not None:
             sudorule['description'] = description
+        return self._post_json(method='sudorule_add', name=name, item=sudorule)
 
-        data = {'method': 'sudorule_add', 'params': [[name], sudorule]}
-        url = '{base_url}/session/json'.format(base_url=self.get_base_url())
-
-        try:
-            r = requests.post(url=url, data=json.dumps(data), headers=self.headers, verify=False, cookies=self.cookies)
-            r.raise_for_status()
-        except Exception as e:
-            self.module.fail_json(msg='error while posting sudorule_add request: {}'.format(e.message))
-
-        resp = json.loads(r.content)
-        err = resp.get('error')
-        if err is not None:
-            self.module.fail_json(msg=err)
+    def sudorule_add_user(self, name, groups=None, users=None):
+        data = {}
+        if groups is not None:
+            data['group'] = groups
+        if users is not None:
+            data['user'] = users
+        return self._post_json(method='sudorule_add_user', name=name, item=data)
 
     def sudorule_del(self, uid):
-        data = {'method': 'sudorule_del', 'params': [[uid], {}]}
-        url = '{base_url}/session/json'.format(base_url=self.get_base_url())
-
-        try:
-            r = requests.post(url=url, data=json.dumps(data), headers=self.headers, verify=False, cookies=self.cookies)
-            r.raise_for_status()
-        except Exception as e:
-            self.module.fail_json(msg='error while posting sudorule_del request: {}'.format(e.message))
-
-        resp = json.loads(r.content)
-        err = resp.get('error')
-        if err is not None:
-            self.module.fail_json(msg='error in sudorule_del response: {}'.format(err))
+        return self._post_json(method='sudorule_del', name=uid)
 
 
 def ensure(module, client):
@@ -100,6 +87,15 @@ def ensure(module, client):
                 return True, None
             client.sudorule_add(name=name, description=module.params['description'],
                                 ipasudoopt=module.params['sudoopt'])
+
+            groups = module.params['groups']
+            if groups is not None:
+                client.sudorule_add_user(name=name, groups=groups)
+
+            users = module.params['users']
+            if users is not None:
+                client.sudorule_add_user(name=name, users=users)
+
             return True, client.sudorule_find(name)
     else:
         if state == 'absent':
@@ -115,8 +111,10 @@ def main():
         argument_spec=dict(
             cn=dict(type='str', required=True, aliases=['name']),
             description=dict(type='str', required=False),
+            groups=dict(type='list', required=False),
             sudoopt=dict(type='str', required=False),
             state=dict(type='str', required=False, default='present', choices=['present', 'absent']),
+            users=dict(type='str', required=False),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
             ipa_host=dict(type='str', required=False, default='ipa.example.com'),
             ipa_port=dict(type='int', required=False, default=443),
