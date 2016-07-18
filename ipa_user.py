@@ -118,6 +118,9 @@ class IPAClient:
     def get_base_url(self):
         return '{prot}://{host}/ipa'.format(prot=self.protocol, host=self.host)
 
+    def get_json_url(self):
+        return '{base_url}/session/json'.format(base_url=self.get_base_url())
+
     def login(self):
         s = requests.session()
         url = '{base_url}/session/login_password'.format(base_url=self.get_base_url())
@@ -132,22 +135,26 @@ class IPAClient:
             self.module.fail_json(msg='error on login: {}'.format(e.message))
         self.cookies = s.cookies
 
-    def find_user(self, name):
+    def _post_json(self, method, name, item={}):
         url = '{base_url}/session/json'.format(base_url=self.get_base_url())
-        data = {'method': 'user_find', 'params': [[name], {}], 'id': 0}
-
+        data = {'method': method, 'params': [[name], item]}
         try:
             r = requests.post(url=url, data=json.dumps(data), headers=self.headers, cookies=self.cookies, verify=False)
             r.raise_for_status()
         except Exception as e:
-            self.module.fail_json(msg='error on post user_find request: {}'.format(e.message))
+            self.module.fail_json(msg='error on post {method} request: {err}'.format(method=method, err=e.message))
 
         resp = json.loads(r.content)
         err = resp.get('error')
         if err is not None:
-            self.module.fail_json(msg='error in user_find response: {}'.format(err))
+            self.module.fail_json(msg='error in {method} response: {err}'.format(method=method, err=err))
 
-        return resp.get('result').get('result')
+        if 'result' in resp:
+            return resp.get('result').get('result')
+        return None
+
+    def find_user(self, name):
+        return self._post_json(method='user_find', name=name)
 
     def add_user(self, uid, givenname=None, loginshell=None, mail=None, sn=None, sshpubkeyfp=None, telephonenumber=None,
                  title=None):
@@ -167,34 +174,10 @@ class IPAClient:
         if title is not None:
             user['title'] = title
 
-        data = {'method': 'user_add', 'params': [[uid], user]}
-        url = '{base_url}/session/json'.format(base_url=self.get_base_url())
-
-        try:
-            r = requests.post(url=url, data=json.dumps(data), headers=self.headers, verify=False, cookies=self.cookies)
-            r.raise_for_status()
-        except Exception as e:
-            self.module.fail_json(msg='error while posting user_add request: {}'.format(e.message))
-
-        resp = json.loads(r.content)
-        err = resp.get('error')
-        if err is not None:
-            self.module.fail_json(msg=err)
+        return self._post_json(method='user_add', name=uid, item=user)
 
     def del_user(self, uid):
-        data = {'method': 'user_del', 'params': [[uid], {}]}
-        url = '{base_url}/session/json'.format(base_url=self.get_base_url())
-
-        try:
-            r = requests.post(url=url, data=json.dumps(data), headers=self.headers, verify=False, cookies=self.cookies)
-            r.raise_for_status()
-        except Exception as e:
-            self.module.fail_json(msg='error while posting user_del request: {}'.format(e.message))
-
-        resp = json.loads(r.content)
-        err = resp.get('error')
-        if err is not None:
-            self.module.fail_json(msg='error in user_del response: {}'.format(err))
+        return self._post_json(method='user_del', name=uid)
 
 
 def ensure(module, client):
