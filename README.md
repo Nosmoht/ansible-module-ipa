@@ -40,7 +40,9 @@ to run every command on every hosts with sudo without being asked for a password
 ```yaml
 - ipa_sudorule:
     name: sudo_all_nopasswd
+    cmdcategory: all
     description: Allow to run every command with sudo without password
+    hostcategory: all
     sudoopt: '!authenticate'
     groups:
     - ipausers
