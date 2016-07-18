@@ -3,6 +3,7 @@ Ansible IPA modules
 
 - [Introduction](#introduction)
 - [Usage](#usage)
+ - [Group](#group)
  - [Sudo rule](#sudo_rule)
  - [User](#user)
 
@@ -10,6 +11,28 @@ Ansible IPA modules
 Ansible modules to manager IPA entries.
 
 # Usage
+
+## Group
+Ensure a group is present
+```yaml
+- ipa_group:
+  name: oinstall
+  description: Oracle software owner
+  gidnumber: 54321
+  ip_host: ipa.example.com
+  ip_user: admin
+  ip_pass: topsecret
+```
+
+Ensure group is absent
+```yaml
+- ipa_group:
+  name: testgroup
+  state: absent
+  ip_host: ipa.example.com
+  ip_user: admin
+  ip_pass: topsecret
+```
 
 ## Sudo rule
 Ensure sudo rule is present
