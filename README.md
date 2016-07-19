@@ -16,22 +16,22 @@ Ansible modules to manager IPA entries.
 Ensure a group is present
 ```yaml
 - ipa_group:
-  name: oinstall
-  description: Oracle software owner
-  gidnumber: 54321
-  ip_host: ipa.example.com
-  ip_user: admin
-  ip_pass: topsecret
+    name: oinstall
+    description: Oracle software owner
+    gidnumber: 54321
+    ip_host: ipa.example.com
+    ip_user: admin
+    ip_pass: topsecret
 ```
 
 Ensure group is absent
 ```yaml
 - ipa_group:
-  name: testgroup
-  state: absent
-  ip_host: ipa.example.com
-  ip_user: admin
-  ip_pass: topsecret
+    name: testgroup
+    state: absent
+    ip_host: ipa.example.com
+    ip_user: admin
+    ip_pass: topsecret
 ```
 
 ## Sudo rule
