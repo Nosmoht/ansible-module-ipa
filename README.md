@@ -4,6 +4,7 @@ Ansible IPA modules
 - [Introduction](#introduction)
 - [Usage](#usage)
  - [Group](#group)
+ - [Hostgroup](#hostgroup)
  - [Sudo rule](#sudo_rule)
  - [User](#user)
 
@@ -29,6 +30,28 @@ Ensure group is absent
 - ipa_group:
     name: testgroup
     state: absent
+    ip_host: ipa.example.com
+    ip_user: admin
+    ip_pass: topsecret
+```
+
+## Hostgroup
+```yaml
+- name: Ensure hostgroup oracle-server is present
+  ipa_hostgroup:
+    name: oracle-server
+    description: Oracle Database server
+    state: present
+    ip_host: ipa.example.com
+    ip_user: admin
+    ip_pass: topsecret
+```
+
+```yaml
+- name: Ensure hostgroup oracle-server is absent
+  ipa_hostgroup:
+    name: oracle-server
+    state: present
     ip_host: ipa.example.com
     ip_user: admin
     ip_pass: topsecret

@@ -98,9 +98,12 @@ user:
   type: string
 '''
 
+import base64
+import hashlib
 import json
-
 import requests
+
+from ansible.module_utils.basic import AnsibleModule
 
 
 class IPAClient:
@@ -186,8 +189,8 @@ class IPAClient:
         return self._post_json(method='user_enable', name=name)
 
 
-def get_user_object(givenname=None, loginshell=None, mail=None, sn=None, sshpubkeyfp=None, telephonenumber=None,
-                    title=None):
+def get_user_dict(givenname=None, loginshell=None, mail=None, sn=None, sshpubkey=None, telephonenumber=None,
+                  title=None):
     user = {}
     if givenname is not None:
         user['givenname'] = givenname
@@ -197,8 +200,12 @@ def get_user_object(givenname=None, loginshell=None, mail=None, sn=None, sshpubk
         user['mail'] = mail
     if sn is not None:
         user['sn'] = sn
-    if sshpubkeyfp is not None:
-        user['ipasshpubkey'] = sshpubkeyfp
+    if sshpubkey is not None:
+        user['ipasshpubkey'] = sshpubkey
+        sshpubkeyfp = []
+        for pubkey in sshpubkey:
+            sshpubkeyfp.append(get_ssh_key_fingerprint(pubkey))
+        user['sshpubkeyfp'] = sshpubkeyfp
     if telephonenumber is not None:
         user['telephonenumber'] = telephonenumber
     if title is not None:
@@ -210,16 +217,19 @@ def get_user_object(givenname=None, loginshell=None, mail=None, sn=None, sshpubk
 def user_diff(ipa_user, module_user):
     """
         Return the keys of each dict whereas values are different. Unfortunately the IPA
-        API returns everything within a list even if only a single value is possible.
+        API returns everything as a list even if only a single value is possible.
         Therefore some more complexity is needed.
-        The method will check if the value type of module_user.attr is string and
-        convert it to list(string) if the same attribute in ipa_user is list.
+        The method will check if the value type of module_user.attr is not a list and
+        create a list with that element if the same attribute in ipa_user is list. In this way i hope that the method
+        must not be changed if the returned API dict is changed.
     :param ipa_user:
     :param module_user:
     :return:
     """
     #    return [item for item in module_user.keys() if module_user.get(item, None) != ipa_user.get(item, None)]
     result = []
+    # Remove the ipasshpubkey element as it is not returned from IPA. IPA returns the fingerprint of each key instead.
+    module_user = {key: module_user[key] for key in module_user if key != 'ipasshpubkey'}
     for key in module_user.keys():
         mod_value = module_user.get(key, None)
         ipa_value = ipa_user.get(key, None)
@@ -230,14 +240,30 @@ def user_diff(ipa_user, module_user):
     return result
 
 
+def get_ssh_key_fingerprint(ssh_key):
+    """
+    Return the public key fingerprint of a given public SSH key in format "FB:0C:AC:0A:07:94:5B:CE:75:6E:63:32:13:AD:AD:D7 (ssh-rsa)"
+    :param ssh_key:
+    :return:
+    """
+    parts = ssh_key.strip().split()
+    if len(parts) == 0:
+        return None
+    key_type = parts[0]
+    key = base64.b64decode(parts[1].encode('ascii'))
+
+    fp_plain = hashlib.md5(key).hexdigest()
+    return ':'.join(a + b for a, b in zip(fp_plain[::2], fp_plain[1::2])).upper() + ' (%s)' % key_type
+
+
 def ensure(module, client):
     state = module.params['state']
     name = module.params['name']
 
-    module_user = get_user_object(givenname=module.params.get('givenname'), loginshell=module.params['loginshell'],
-                                  mail=module.params['mail'], sn=module.params['sn'],
-                                  sshpubkeyfp=module.params['sshpubkeyfp'],
-                                  telephonenumber=module.params['telephonenumber'], title=module.params['title'])
+    module_user = get_user_dict(givenname=module.params.get('givenname'), loginshell=module.params['loginshell'],
+                                mail=module.params['mail'], sn=module.params['sn'],
+                                sshpubkey=module.params['sshpubkey'],
+                                telephonenumber=module.params['telephonenumber'], title=module.params['title'])
 
     ipa_user = client.user_find(name=name)
 
@@ -246,6 +272,9 @@ def ensure(module, client):
             if module.check_mode:
                 module.exit_json(changed=True, user=module_user)
 
+            # sshpubkeyfp must not be part of the dictionary but is added to make comparison of existing users eaiser by
+            # method get_user_dict, so it needs to be removed. Otherwise the IPA API responds: Unknown option: sshpubkeyfp"
+            if 'sshpubkeyfp' in module_user: del module_user['sshpubkeyfp']
             client.user_add(name, module_user)
 
             if state == 'enabled':
@@ -257,6 +286,7 @@ def ensure(module, client):
         if state in ['present', 'enabled', 'disabled']:
             diff = user_diff(ipa_user, module_user)
             if len(diff) > 0:
+                module.fail_json(msg="{}\n{}".format(ipa_user.get('sshpubkeyfp'), module_user.get('sshpubkeyfp')))
                 if module.check_mode:
                     module.exit_json(changed=True, user=ipa_user)
 
@@ -281,7 +311,7 @@ def main():
             sn=dict(type='str', required=False),
             uid=dict(type='str', required=True, aliases=['name']),
             password=dict(type='str', required=False, no_log=True),
-            sshpubkeyfp=dict(type='list', required=False),
+            sshpubkey=dict(type='list', required=False),
             state=dict(type='str', required=False, default='present',
                        choices=['present', 'absent', 'enabled', 'disabled']),
             telephonenumber=dict(type='list', required=False),
@@ -301,6 +331,13 @@ def main():
                        username=module.params['ipa_user'],
                        password=module.params['ipa_pass'],
                        protocol=module.params['ipa_prot'])
+
+    # If sshpubkey is defined as None than module.params['sshpubkey'] is [None]. IPA itself returns None (not a list).
+    # Therefore a small check here to replace list(None) by None. Otherwise the user_diff method would return sshpubkey
+    # as different which should be avoided.
+    if len(module.params['sshpubkey']) == 1 and module.params['sshpubkey'][0] is "":
+        module.params['sshpubkey'] = None
+
     try:
         client.login()
         changed, user = ensure(module, client)
@@ -308,8 +345,6 @@ def main():
     except Exception as e:
         module.fail_json(msg=e.message)
 
-
-from ansible.module_utils.basic import AnsibleModule
 
 if __name__ == '__main__':
     main()
