@@ -7,6 +7,8 @@ Ansible IPA modules
  - [Hostgroup](#hostgroup)
  - [Sudo rule](#sudo_rule)
  - [User](#user)
+- [License](#licence)
+- [Author](#author)
 
 # Introduction
 Ansible modules to manager IPA entries.
