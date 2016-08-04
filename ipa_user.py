@@ -286,7 +286,6 @@ def ensure(module, client):
         if state in ['present', 'enabled', 'disabled']:
             diff = user_diff(ipa_user, module_user)
             if len(diff) > 0:
-                module.fail_json(msg="{}\n{}".format(ipa_user.get('sshpubkeyfp'), module_user.get('sshpubkeyfp')))
                 if module.check_mode:
                     module.exit_json(changed=True, user=ipa_user)
 
