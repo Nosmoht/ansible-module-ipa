@@ -67,6 +67,9 @@ Ensure group is absent
     name: Oracle Database Administrator
     description: Responsible for administrating Oracle Databases
     state: present
+    user:
+    - pinky
+    - brain
     ip_host: ipa.example.com
     ip_user: admin
     ip_pass: topsecret
