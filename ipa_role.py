@@ -63,8 +63,8 @@ EXAMPLES = '''
 '''
 
 RETURN = '''
-user:
-  description: JSON data of user as returned by IPA
+role:
+  description: JSON data of role as returned by IPA
   returned: if found
   type: string
 '''
