@@ -121,6 +121,9 @@ Ensure a user is present
     givenname: Pinky
     sn: Acme
     mail: pinky@acme.com
+    sshpubkey:
+    - ssh-rsa ...
+    - ssh-dss ...
     telephonenumber: '+555123456'
     ip_host: ipa.example.com
     ip_user: admin
