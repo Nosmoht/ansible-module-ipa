@@ -45,7 +45,8 @@ options:
 EXAMPLES = '''
 - name: ensure role is present
   ipa_role:
-    name: pinky
+    name: dba
+    description: Database Administrators
     state: present
     ip_host: ipa.example.com
     ip_user: admin
@@ -54,7 +55,7 @@ EXAMPLES = '''
 
 - name: ensure role is absent
   ipa_role:
-    name: brain
+    name: dba
     state: absent
     ip_host: ipa.example.com
     ip_user: admin
