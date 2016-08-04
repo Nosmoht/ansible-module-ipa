@@ -44,6 +44,9 @@ Ensure group is absent
   ipa_hostgroup:
     name: oracle-server
     description: Oracle Database server
+    host:
+    - db01.example.com
+    - db02.example.com
     state: present
     ip_host: ipa.example.com
     ip_user: admin
