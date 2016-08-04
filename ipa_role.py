@@ -20,6 +20,9 @@ options:
     required: false
     default: "present"
     choices: ["present", "absent"]
+  user:
+    description: List of user names that belong to the role
+    required: false
   ipa_port:
     description: Port of IPA server
     required: false
@@ -48,6 +51,9 @@ EXAMPLES = '''
     name: dba
     description: Database Administrators
     state: present
+    user:
+    - pinky
+    - brain
     ip_host: ipa.example.com
     ip_user: admin
     ip_pass: topsecret
@@ -151,11 +157,11 @@ class IPAClient:
     def role_del(self, name):
         return self._post_json(method='role_del', name=name)
 
-    def role_disable(self, name):
-        return self._post_json(method='role_disable', name=name)
+    def role_add_member(self, name, member):
+        return self._post_json(method='role_add_member', name=name, item=member)
 
-    def role_enable(self, name):
-        return self._post_json(method='role_enable', name=name)
+    def role_remove_member(self, name, member):
+        return self._post_json(method='role_remove_member', name=name, item=member)
 
 
 def get_role_dict(description=None):
@@ -180,6 +186,9 @@ def role_diff(target, actual):
 def ensure(module, client):
     state = module.params['state']
     name = module.params['name']
+    user = module.params['user']
+    if user is not None:
+        user.sort()
 
     module_role = get_role_dict(description=module.params['description'])
 
@@ -192,6 +201,9 @@ def ensure(module, client):
 
             client.role_add(name=name, role=module_role)
 
+            if user is not None:
+                client.role_add_member(name=name, member={'user': user})
+
             return True, client.role_find(name=name)
     else:
         if state == 'present':
@@ -200,7 +212,7 @@ def ensure(module, client):
 
                 if module.check_mode:
                     module.exit_json(changed=True, role=module_role)
-                module.fail_json(msg=str(module_role) + ":::" + str(ipa_role))
+
                 client.role_mod(name=name, role=module_role)
                 return True, client.user_find(name=name)
         if state == 'absent':
@@ -218,6 +230,7 @@ def main():
             cn=dict(type='str', required=True, aliases=['name']),
             description=dict(type='str', required=False),
             state=dict(type='str', required=False, default='present', choices=['present', 'absent']),
+            user=dict(type='list', required=False),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
             ipa_host=dict(type='str', required=False, default='ipa.example.com'),
             ipa_port=dict(type='int', required=False, default=443),
