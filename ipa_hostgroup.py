@@ -17,6 +17,11 @@ options:
   description:
     description: Description
     required: false
+  host:
+    description:
+    - List of hosts that belong to the hostgroup.
+    - If an empty list is passed all hosts will be removed from the group.
+    required: false
   state:
     description: State to ensure
     required: false
@@ -51,6 +56,8 @@ EXAMPLES = '''
 - ipa_hostgroup:
     name: databases
     state: present
+    host:
+    - db.example.com
     ip_host: ipa.example.com
     ip_user: admin
     ip_pass: topsecret
@@ -153,6 +160,12 @@ class IPAClient:
     def hostgroup_del(self, name):
         return self._post_json(method='hostgroup_del', name=name)
 
+    def hostgroup_add_member(self, name, host):
+        return self._post_json(method='hostgroup_add_member', name=name, item=host)
+
+    def hostgroup_remove_member(self, name, host):
+        return self._post_json(method='hostgroup_remove_member', name=name, item=host)
+
 
 def get_hostgroup_dict(name, description=None):
     data = {}
@@ -164,6 +177,9 @@ def get_hostgroup_dict(name, description=None):
 def ensure(module, client):
     name = module.params['name']
     state = module.params['state']
+    host = module.params['host']
+    if host is not None:
+        host.sort()
 
     ipa_hostgroup = client.hostgroup_find(name=name)
     hostgroup = get_hostgroup_dict(name=name, description=module.params['description'])
@@ -171,7 +187,32 @@ def ensure(module, client):
     if state == 'present':
         if not ipa_hostgroup:
             client.hostgroup_add(name=name, hostgroup=hostgroup)
+
+            if host is not None:
+                client.hostgroup_add_member(name=name, host={'host': host})
+
             return True, client.hostgroup_find(name=name)
+
+        changed = False
+        # Host members
+        if host is not None:
+            ipa_host = ipa_hostgroup.get('member_host', [])
+
+            # Hosts that a part of the group but shouldn't must be removed
+            hosts = list(set(ipa_host) - set(host))
+            if len(hosts) > 0:
+                client.hostgroup_remove_member(name=name, host={'host': hosts})
+                changed = True
+
+            # Hosts that a not port of the group but should must be added
+            hosts = list(set(host) - set(ipa_host))
+            if len(hosts) > 0:
+                client.hostgroup_add_member(name=name, host={'host': hosts})
+                changed = True
+
+        if changed:
+            return True, client.hostgroup_find(name=name)
+        return False, ipa_hostgroup
     else:
         if ipa_hostgroup:
             client.hostgroup_del(name=name)
@@ -184,6 +225,7 @@ def main():
         argument_spec=dict(
             cn=dict(type='str', required=True, aliases=['name']),
             description=dict(type='str', required=False),
+            host=dict(type='list', required=False),
             state=dict(type='str', required=False, default='present',
                        choices=['present', 'absent', 'enabled', 'disabled']),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
