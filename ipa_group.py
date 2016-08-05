@@ -48,17 +48,17 @@ EXAMPLES = '''
     name: oinstall
     gidnumber: 54321
     state: present
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 
 # Ensure brain is absent
 - ipa_group:
     name: oinstall
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 '''
 
 RETURN = '''
