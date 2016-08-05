@@ -334,8 +334,9 @@ def main():
     # If sshpubkey is defined as None than module.params['sshpubkey'] is [None]. IPA itself returns None (not a list).
     # Therefore a small check here to replace list(None) by None. Otherwise the user_diff method would return sshpubkey
     # as different which should be avoided.
-    if len(module.params['sshpubkey']) == 1 and module.params['sshpubkey'][0] is "":
-        module.params['sshpubkey'] = None
+    if module.params['sshpubkey'] is not None:
+        if len(module.params['sshpubkey']) == 1 and module.params['sshpubkey'][0] is "":
+            module.params['sshpubkey'] = None
 
     try:
         client.login()
