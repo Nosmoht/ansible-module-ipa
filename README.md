@@ -126,11 +126,13 @@ Ensure a user is present
     state: present
     givenname: Pinky
     sn: Acme
-    mail: pinky@acme.com
+    mail:
+    - pinky@acme.com
     sshpubkey:
     - ssh-rsa ...
     - ssh-dss ...
-    telephonenumber: '+555123456'
+    telephonenumber:
+    - '+555123456'
     ip_host: ipa.example.com
     ip_user: admin
     ip_pass: topsecret
