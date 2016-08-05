@@ -171,7 +171,7 @@ class IPAClient:
         return None
 
     def user_find(self, name):
-        return self._post_json(method='user_find', name=name)
+        return self._post_json(method='user_find', name=name, item={'all': True})
 
     def user_add(self, name, user):
         return self._post_json(method='user_add', name=name, item=user)
@@ -197,17 +197,17 @@ def get_user_dict(givenname=None, loginshell=None, mail=None, sn=None, sshpubkey
     if loginshell is not None:
         user['loginshell'] = loginshell
     if mail is not None:
-        user['mail'] = mail
+        user['mail'] = sorted(mail)
     if sn is not None:
         user['sn'] = sn
     if sshpubkey is not None:
-        user['ipasshpubkey'] = sshpubkey
+        user['ipasshpubkey'] = sorted(sshpubkey)
         sshpubkeyfp = []
-        for pubkey in sshpubkey:
+        for pubkey in user['sshpubkey']:
             sshpubkeyfp.append(get_ssh_key_fingerprint(pubkey))
         user['sshpubkeyfp'] = sshpubkeyfp
     if telephonenumber is not None:
-        user['telephonenumber'] = telephonenumber
+        user['telephonenumber'] = sorted(telephonenumber)
     if title is not None:
         user['title'] = title
 
@@ -230,7 +230,7 @@ def user_diff(ipa_user, module_user):
     result = []
     # Remove the ipasshpubkey element as it is not returned from IPA. IPA returns the fingerprint of each key instead.
     module_user = {key: module_user[key] for key in module_user if key != 'ipasshpubkey'}
-    for key in module_user.keys():
+    for key in module_user:
         mod_value = module_user.get(key, None)
         ipa_value = ipa_user.get(key, None)
         if isinstance(ipa_value, list) and not isinstance(mod_value, list):
@@ -288,7 +288,6 @@ def ensure(module, client):
             if len(diff) > 0:
                 if module.check_mode:
                     module.exit_json(changed=True, user=ipa_user)
-
                 client.user_mod(name=name, user=module_user)
                 return True, client.user_find(name=name)
         if state == 'absent':
