@@ -43,24 +43,18 @@ options:
 '''
 
 EXAMPLES = '''
-# Ensure pinky is present
-- ipa_user:
-    name: pinky
+# Ensure group is present
+- ipa_group:
+    name: oinstall
+    gidnumber: 54321
     state: present
-    givenname: Pinky
-    sn: Acme
-    mail: pinky@acme.com
-    telephonenumber: '+555123456'
-    sshpubkeyfp:
-    - ssh-rsa ....
-    - ssh-dsa ....
     ip_host: ipa.example.com
     ip_user: admin
     ip_pass: topsecret
 
 # Ensure brain is absent
-- ipa_user:
-    name: brain
+- ipa_group:
+    name: oinstall
     state: absent
     ip_host: ipa.example.com
     ip_user: admin
@@ -69,7 +63,7 @@ EXAMPLES = '''
 
 RETURN = '''
 user:
-  description: JSON data of user as returned by IPA
+  description: JSON data of group as returned by IPA
   returned: if found
   type: string
 '''
