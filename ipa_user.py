@@ -203,7 +203,7 @@ def get_user_dict(givenname=None, loginshell=None, mail=None, sn=None, sshpubkey
     if sshpubkey is not None:
         user['ipasshpubkey'] = sorted(sshpubkey)
         sshpubkeyfp = []
-        for pubkey in user['sshpubkey']:
+        for pubkey in user['ipasshpubkey']:
             sshpubkeyfp.append(get_ssh_key_fingerprint(pubkey))
         user['sshpubkeyfp'] = sshpubkeyfp
     if telephonenumber is not None:
@@ -274,7 +274,8 @@ def ensure(module, client):
 
             # sshpubkeyfp must not be part of the dictionary but is added to make comparison of existing users eaiser by
             # method get_user_dict, so it needs to be removed. Otherwise the IPA API responds: Unknown option: sshpubkeyfp"
-            if 'sshpubkeyfp' in module_user: del module_user['sshpubkeyfp']
+            if 'sshpubkeyfp' in module_user:
+                del module_user['sshpubkeyfp']
             client.user_add(name, module_user)
 
             if state == 'enabled':
