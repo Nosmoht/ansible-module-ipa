@@ -78,17 +78,17 @@ EXAMPLES = '''
     sshpubkeyfp:
     - ssh-rsa ....
     - ssh-dsa ....
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 
 # Ensure brain is absent
 - ipa_user:
     name: brain
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 '''
 
 RETURN = '''

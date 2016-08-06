@@ -58,17 +58,17 @@ EXAMPLES = '''
     state: present
     host:
     - db.example.com
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 
 # Ensure hostgroup databases is absent
 - ipa_hostgroup:
     name: databases
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 '''
 
 RETURN = '''
@@ -186,10 +186,12 @@ def ensure(module, client):
 
     if state == 'present':
         if not ipa_hostgroup:
-            client.hostgroup_add(name=name, hostgroup=hostgroup)
+            if not module.check_mode:
+                client.hostgroup_add(name=name, hostgroup=hostgroup)
 
             if host is not None:
-                client.hostgroup_add_member(name=name, host={'host': host})
+                if not module.check_mode:
+                    client.hostgroup_add_member(name=name, host={'host': host})
 
             return True, client.hostgroup_find(name=name)
 
@@ -201,13 +203,15 @@ def ensure(module, client):
             # Hosts that a part of the group but shouldn't must be removed
             hosts = list(set(ipa_host) - set(host))
             if len(hosts) > 0:
-                client.hostgroup_remove_member(name=name, host={'host': hosts})
+                if not module.check_mode:
+                    client.hostgroup_remove_member(name=name, host={'host': hosts})
                 changed = True
 
             # Hosts that a not port of the group but should must be added
             hosts = list(set(host) - set(ipa_host))
             if len(hosts) > 0:
-                client.hostgroup_add_member(name=name, host={'host': hosts})
+                if not module.check_mode:
+                    client.hostgroup_add_member(name=name, host={'host': hosts})
                 changed = True
 
         if changed:
@@ -215,7 +219,8 @@ def ensure(module, client):
         return False, ipa_hostgroup
     else:
         if ipa_hostgroup:
-            client.hostgroup_del(name=name)
+            if not module.check_mode:
+                client.hostgroup_del(name=name)
             return True, None
     return False, ipa_hostgroup
 
