@@ -54,18 +54,18 @@ EXAMPLES = '''
     user:
     - pinky
     - brain
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 
 
 - name: ensure role is absent
   ipa_role:
     name: dba
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 '''
 
 RETURN = '''

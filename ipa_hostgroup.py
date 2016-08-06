@@ -58,17 +58,17 @@ EXAMPLES = '''
     state: present
     host:
     - db.example.com
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 
 # Ensure hostgroup databases is absent
 - ipa_hostgroup:
     name: databases
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 '''
 
 RETURN = '''
