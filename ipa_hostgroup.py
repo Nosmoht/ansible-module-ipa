@@ -167,7 +167,7 @@ class IPAClient:
         return self._post_json(method='hostgroup_remove_member', name=name, item=host)
 
 
-def get_hostgroup_dict(name, description=None):
+def get_hostgroup_dict(description=None):
     data = {}
     if description is not None:
         data['description'] = description
@@ -182,7 +182,7 @@ def ensure(module, client):
         host.sort()
 
     ipa_hostgroup = client.hostgroup_find(name=name)
-    hostgroup = get_hostgroup_dict(name=name, description=module.params['description'])
+    hostgroup = get_hostgroup_dict(description=module.params['description'])
 
     if state == 'present':
         if not ipa_hostgroup:
