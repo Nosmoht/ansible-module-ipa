@@ -182,16 +182,20 @@ def ensure(module, client):
         host.sort()
 
     ipa_hostgroup = client.hostgroup_find(name=name)
-    hostgroup = get_hostgroup_dict(description=module.params['description'])
+    module_hostgroup = get_hostgroup_dict(description=module.params['description'])
 
     if state == 'present':
         if not ipa_hostgroup:
-            if not module.check_mode:
-                client.hostgroup_add(name=name, hostgroup=hostgroup)
+            if module.check_mode:
+                module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+
+            client.hostgroup_add(name=name, hostgroup=module_hostgroup)
 
             if host is not None:
-                if not module.check_mode:
-                    client.hostgroup_add_member(name=name, host={'host': host})
+                if module.check_mode:
+                    module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+
+                client.hostgroup_add_member(name=name, host={'host': host})
 
             return True, client.hostgroup_find(name=name)
 
@@ -203,15 +207,19 @@ def ensure(module, client):
             # Hosts that a part of the group but shouldn't must be removed
             hosts = list(set(ipa_host) - set(host))
             if len(hosts) > 0:
-                if not module.check_mode:
-                    client.hostgroup_remove_member(name=name, host={'host': hosts})
+                if module.check_mode:
+                    module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+
+                client.hostgroup_remove_member(name=name, host={'host': hosts})
                 changed = True
 
             # Hosts that a not port of the group but should must be added
             hosts = list(set(host) - set(ipa_host))
             if len(hosts) > 0:
-                if not module.check_mode:
-                    client.hostgroup_add_member(name=name, host={'host': hosts})
+                if module.check_mode:
+                    module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+
+                client.hostgroup_add_member(name=name, host={'host': hosts})
                 changed = True
 
         if changed:
@@ -219,8 +227,10 @@ def ensure(module, client):
         return False, ipa_hostgroup
     else:
         if ipa_hostgroup:
-            if not module.check_mode:
-                client.hostgroup_del(name=name)
+            if module.check_mode:
+                module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+
+            client.hostgroup_del(name=name)
             return True, None
     return False, ipa_hostgroup
 
