@@ -114,8 +114,6 @@ import hashlib
 import json
 import requests
 
-from ansible.module_utils.basic import AnsibleModule
-
 
 class IPAClient:
     def __init__(self, module, host, port, username, password, protocol):
@@ -157,7 +155,9 @@ class IPAClient:
             err_string = e
         self.module.fail_json(msg='{}: {}'.format(msg, err_string))
 
-    def _post_json(self, method, name, item={}):
+    def _post_json(self, method, name, item=None):
+        if item is None:
+            item = {}
         url = '{base_url}/session/json'.format(base_url=self.get_base_url())
         data = {'method': method, 'params': [[name], item]}
         try:
@@ -253,7 +253,8 @@ def user_diff(ipa_user, module_user):
 
 def get_ssh_key_fingerprint(ssh_key):
     """
-    Return the public key fingerprint of a given public SSH key in format "FB:0C:AC:0A:07:94:5B:CE:75:6E:63:32:13:AD:AD:D7 (ssh-rsa)"
+    Return the public key fingerprint of a given public SSH key
+    in format "FB:0C:AC:0A:07:94:5B:CE:75:6E:63:32:13:AD:AD:D7 (ssh-rsa)"
     :param ssh_key:
     :return:
     """
@@ -284,7 +285,8 @@ def ensure(module, client):
                 module.exit_json(changed=True, user=module_user)
 
             # sshpubkeyfp must not be part of the dictionary but is added to make comparison of existing users eaiser by
-            # method get_user_dict, so it needs to be removed. Otherwise the IPA API responds: Unknown option: sshpubkeyfp"
+            # method get_user_dict, so it needs to be removed.
+            # Otherwise the IPA API responds with: Unknown option: sshpubkeyfp"
             if 'sshpubkeyfp' in module_user:
                 del module_user['sshpubkeyfp']
             client.user_add(name, module_user)
@@ -356,6 +358,8 @@ def main():
     except Exception as e:
         module.fail_json(msg=e.message)
 
+
+from ansible.module_utils.basic import AnsibleModule
 
 if __name__ == '__main__':
     main()
