@@ -213,10 +213,7 @@ def get_user_dict(givenname=None, loginshell=None, mail=None, sn=None, sshpubkey
         user['sn'] = sn
     if sshpubkey is not None:
         user['ipasshpubkey'] = sorted(sshpubkey)
-        sshpubkeyfp = []
-        for pubkey in user['ipasshpubkey']:
-            sshpubkeyfp.append(get_ssh_key_fingerprint(pubkey))
-        user['sshpubkeyfp'] = sshpubkeyfp
+        user['sshpubkeyfp'] = [get_ssh_key_fingerprint(pubkey) for pubkey in user['ipasshpubkey']]
     if telephonenumber is not None:
         user['telephonenumber'] = sorted(telephonenumber)
     if title is not None:
