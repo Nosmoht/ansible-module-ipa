@@ -125,7 +125,7 @@ class IPAClient:
         return None
 
     def group_find(self, name):
-        return self._post_json(method='group_find', name=name)
+        return self._post_json(method='group_find', name=name, item={'all': True})
 
     def group_add(self, name, group):
         return self._post_json(method='group_add', name=name, item=group)
