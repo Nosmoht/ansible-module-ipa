@@ -21,7 +21,10 @@ options:
     default: "present"
     choices: ["present", "absent"]
   user:
-    description: List of user names that belong to the role
+    description:
+    - List of user names that belong to the role.
+    - If an empty list is passed all assigned users will be deleted.
+    - If None is passed users will not be checked or changed.
     required: false
   ipa_port:
     description: Port of IPA server
