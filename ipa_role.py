@@ -152,7 +152,7 @@ class IPAClient:
         return None
 
     def role_find(self, name):
-        return self._post_json(method='role_find', name=name)
+        return self._post_json(method='role_find', name=name, item={'all': True})
 
     def role_add(self, name, role):
         return self._post_json(method='role_add', name=name, item=role)
