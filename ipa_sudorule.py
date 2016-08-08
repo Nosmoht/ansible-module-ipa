@@ -21,6 +21,9 @@ class IPAClient:
     def get_base_url(self):
         return '{prot}://{host}/ipa'.format(prot=self.protocol, host=self.host)
 
+    def get_json_url(self):
+        return '{base_url}/session/json'.format(base_url=self.get_base_url())
+
     def login(self):
         s = requests.session()
         url = '{base_url}/session/login_password'.format(base_url=self.get_base_url())
@@ -32,34 +35,47 @@ class IPAClient:
             s = requests.post(url=url, data=data, headers=headers, verify=False)
             s.raise_for_status()
         except Exception as e:
-            self.module.fail_json(msg='error on login: {}'.format(e.message))
+            self._fail('login', e)
         self.cookies = s.cookies
 
-    def _post_json(self, method, name, item={}):
+    def _fail(self, msg, e):
+        if 'message' in e:
+            err_string = e.get('message')
+        else:
+            err_string = e
+        self.module.fail_json(msg='{}: {}'.format(msg, err_string))
+
+    def _post_json(self, method, name, item=None):
+        if item is None:
+            item = {}
+
         url = '{base_url}/session/json'.format(base_url=self.get_base_url())
         data = {'method': method, 'params': [[name], item]}
         try:
             r = requests.post(url=url, data=json.dumps(data), headers=self.headers, cookies=self.cookies, verify=False)
             r.raise_for_status()
         except Exception as e:
-            self.module.fail_json(msg='error on post {method} request: {err}'.format(method=method, err=e.message))
+            self._fail('post {}'.format(method), e)
 
         resp = json.loads(r.content)
         err = resp.get('error')
         if err is not None:
-            self.module.fail_json(msg='error in {method} response: {err}'.format(method=method, err=err))
+            self._fail('repsonse {}'.format(method), err)
 
         if 'result' in resp:
-            return resp.get('result').get('result')
+            result = resp.get('result')
+            if 'result' in result:
+                result = result.get('result')
+                if isinstance(result, list):
+                    if len(result) > 0:
+                        return result[0]
+            return result
         return None
 
     def sudorule_find(self, name):
-        return self._post_json(method='sudorule_find', name=name)
+        return self._post_json(method='sudorule_find', name=name, item={'all': True})
 
-    def sudorule_add(self, name, description=None):
-        sudorule = {}
-        if description is not None:
-            sudorule['description'] = description
+    def sudorule_add(self, name, sudorule):
         return self._post_json(method='sudorule_add', name=name, item=sudorule)
 
     def sudorule_add_option(self, name, ipasudoopt):
@@ -77,57 +93,63 @@ class IPAClient:
     def sudorule_mod(self, name, item):
         return self._post_json(method='sudorule_mod', name=name, item=item)
 
-    def sudorule_add_user(self, name, groups=None, users=None):
-        data = {}
-        if groups is not None:
-            data['group'] = groups
-        if users is not None:
-            data['user'] = users
-        return self._post_json(method='sudorule_add_user', name=name, item=data)
+    def sudorule_add_user(self, name, sudorule):
+        return self._post_json(method='sudorule_add_user', name=name, item=sudorule)
 
     def sudorule_del(self, uid):
         return self._post_json(method='sudorule_del', name=uid)
 
 
+def get_sudorule_dict(description=None, ipaenabledflag=None):
+    data = {}
+    if description is not None:
+        data['description'] = description
+    if ipaenabledflag is not None:
+        data['ipaenabledflag'] = ipaenabledflag
+    return data
+
+
 def ensure(module, client):
     state = module.params['state']
     name = module.params['name']
+    cmd = module.params['cmd']
+    cmdcategory = module.params['cmdcategory']
+    groups = module.params['groups']
+    host = module.params['host']
+    hostcategory = module.params['hostcategory']
+    ipaenabledflag = state in ['present', 'enabled']
+    ipasudooptions = module.params['sudoopt']
+    users = module.params['users']
 
-    sudorule = client.sudorule_find(name=name)
-    if not sudorule:
-        if state == 'present':
+    module_sudorule = get_sudorule_dict(description=module.params['description'], ipaenabledflag=ipaenabledflag)
+    ipa_sudorule = client.sudorule_find(name=name)
+
+    if not ipa_sudorule:
+        if state in ['present', 'disabled', 'enabled']:
             if module.check_mode:
                 return True, None
-            client.sudorule_add(name=name, description=module.params['description'])
 
-            ipasudooptions = module.params['sudoopt']
+            client.sudorule_add(name=name, sudorule=module_sudorule)
+
             if ipasudooptions is not None:
                 for sudooption in ipasudooptions:
                     client.sudorule_add_option(name=name, ipasudoopt=sudooption)
 
-            users = module.params['users']
             if users is not None:
                 client.sudorule_add_user(name=name, users=users)
 
-            groups = module.params['groups']
             if groups is not None:
                 client.sudorule_add_user(name=name, groups=groups)
 
-            hostcategory = module.params['hostcategory']
             if hostcategory is not None:
-                data = {'hostcategory': hostcategory}
-                client.sudorule_mod(name=name, item=data)
+                client.sudorule_mod(name=name, item={'hostcategory': hostcategory})
 
-            host = module.params['host']
             if host is not None:
                 client.sudorule_add_host(name=name, hosts=host)
 
-            cmdcategory = module.params['cmdcategory']
             if cmdcategory is not None:
-                data = {'cmdcategory': cmdcategory}
-                client.sudorule_mod(name=name, item=data)
+                client.sudorule_mod(name=name, item={'cmdcategory': cmdcategory})
 
-            cmd = module.params['cmd']
             if cmd is not None:
                 client.sudorule_add_allow_command(name=name, cmd=cmd)
 
@@ -135,10 +157,13 @@ def ensure(module, client):
     else:
         if state == 'absent':
             if module.check_mode:
-                return True, sudorule
+                return True, ipa_sudorule
+
             client.sudorule_del(name)
             return True, None
-    return False, sudorule
+
+        changed=False
+    return False, ipa_sudorule
 
 
 def main():
@@ -152,7 +177,8 @@ def main():
             hostcategory=dict(type='str', required=False),
             host=dict(type='list', required=False),
             sudoopt=dict(type='list', required=False),
-            state=dict(type='str', required=False, default='present', choices=['present', 'absent']),
+            state=dict(type='str', required=False, default='present',
+                       choices=['present', 'absent', 'enabled', 'disabled']),
             users=dict(type='str', required=False),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
             ipa_host=dict(type='str', required=False, default='ipa.example.com'),
@@ -160,6 +186,7 @@ def main():
             ipa_user=dict(type='str', required=False, default='admin'),
             ipa_pass=dict(type='str', required=True, no_log=True),
         ),
+        mutually_exclusive=[['cmd', 'cmdcategory'], ['host', 'hostcategory']],
         supports_check_mode=True,
     )
 
