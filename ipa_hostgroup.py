@@ -152,7 +152,7 @@ class IPAClient:
         return None
 
     def hostgroup_find(self, name):
-        return self._post_json(method='hostgroup_find', name=name)
+        return self._post_json(method='hostgroup_find', name=name, item={'all': True})
 
     def hostgroup_add(self, name, hostgroup):
         return self._post_json(method='hostgroup_add', name=name, item=hostgroup)
