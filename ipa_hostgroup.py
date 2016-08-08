@@ -124,7 +124,10 @@ class IPAClient:
             err_string = e
         self.module.fail_json(msg='{}: {}'.format(msg, err_string))
 
-    def _post_json(self, method, name, item={}):
+    def _post_json(self, method, name, item=None):
+        if item is None:
+            item = {}
+
         url = '{base_url}/session/json'.format(base_url=self.get_base_url())
         data = {'method': method, 'params': [[name], item]}
         try:
