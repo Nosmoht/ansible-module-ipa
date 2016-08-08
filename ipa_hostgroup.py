@@ -21,6 +21,7 @@ options:
     description:
     - List of hosts that belong to the hostgroup.
     - If an empty list is passed all hosts will be removed from the group.
+    - If None is passed assigned hosts will not be checked or changed.
     required: false
   state:
     description: State to ensure
