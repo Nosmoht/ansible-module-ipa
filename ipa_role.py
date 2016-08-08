@@ -213,14 +213,39 @@ def ensure(module, client):
             return True, client.role_find(name=name)
     else:
         if state == 'present':
+            changed = False
             diff = role_diff(actual=ipa_role, target=module_role)
             if len(diff) > 0:
 
                 if module.check_mode:
-                    module.exit_json(changed=True, role=module_role)
+                    module.exit_json(changed=True, role=ipa_role)
 
                 client.role_mod(name=name, role=module_role)
-                return True, client.user_find(name=name)
+                changed = True
+
+            # List of users that must be removed
+            user_diff = list(set(ipa_role.get('member_user', [])) - set(user))
+            if len(user_diff) > 0:
+                if module.check_mode:
+                    module.exit_json(changed=True, role=ipa_role)
+
+                for i in user_diff:
+                    client.role_remove_member(name=name, member={'user': i})
+                changed = True
+
+            # List of users that must be added
+            user_diff = list(set(user) - set(ipa_role.get('member_user', [])))
+            if len(user_diff) > 0:
+                if module.check_mode:
+                    module.exit_json(changed=True, role=ipa_role)
+
+                for i in user_diff:
+                    client.role_add_member(name=name, member={'user': i})
+                changed = True
+
+            if changed:
+                return True, client.role_find(name=name)
+
         if state == 'absent':
             if module.check_mode:
                 module.exit_json(changed=True, role=ipa_role)
