@@ -18,7 +18,10 @@ options:
     description: Login shell
     required: false
   mail:
-    description: Mail address
+    description:
+    - List of mail addresses assigned to the user.
+    - If an empty list is passed all assigned email addresses will be deleted.
+    - If None is passed email addresses will not be checked or changed.
     required: false
   password:
     description: Password
@@ -26,8 +29,11 @@ options:
   sn:
     description: Surname
     required: false
-  sshpubkeyfp:
-    description: List of public SSH key
+  sshpubkey:
+    description:
+    - List of public SSH key.
+    - If an empty list is passed all assigned public keys will be deleted.
+    - If None is passed SSH public keys will not be checked or changed.
     required: false
   state:
     description: State to ensure
@@ -35,7 +41,10 @@ options:
     default: "present"
     choices: ["present", "absent", "enabled", "disabled"]
   telephonenumber:
-    description: Telephone number
+    description:
+    - List of telephone numbers assigned to the user.
+    - If an empty list is passed all assigned telephone numbers will be deleted.
+    - If None is passed telephone numbers will not be checked or changed.
     required: false
   title:
     description: Title
@@ -73,8 +82,10 @@ EXAMPLES = '''
     state: present
     givenname: Pinky
     sn: Acme
-    mail: pinky@acme.com
-    telephonenumber: '+555123456'
+    mail:
+    - pinky@acme.com
+    telephonenumber:
+    - '+555123456'
     sshpubkeyfp:
     - ssh-rsa ....
     - ssh-dsa ....
