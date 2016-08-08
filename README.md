@@ -23,9 +23,9 @@ Ensure a group is present
     name: oinstall
     description: Oracle software owner
     gidnumber: 54321
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 ```
 
 Ensure group is absent
@@ -33,9 +33,9 @@ Ensure group is absent
 - ipa_group:
     name: testgroup
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 ```
 
 ## Hostgroup
@@ -48,9 +48,9 @@ Ensure group is absent
     - db01.example.com
     - db02.example.com
     state: present
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 ```
 
 ```yaml
@@ -58,9 +58,9 @@ Ensure group is absent
   ipa_hostgroup:
     name: oracle-server
     state: present
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 ```
 
 ## Role
@@ -73,9 +73,9 @@ Ensure group is absent
     user:
     - pinky
     - brain
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 ```
 
 ```yaml
@@ -83,9 +83,9 @@ Ensure group is absent
   ipa_role:
     name: Oracle Database Administrator
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 ```
 
 ## Sudo rule
@@ -102,9 +102,9 @@ to run every command on every hosts with sudo without being asked for a password
     - ipausers
     users:
     - pinky
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 ```
 
 Ensure sudo rule is absent
@@ -112,9 +112,9 @@ Ensure sudo rule is absent
 - ipa_sudorule:
     name: sudo_all_nopasswd
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 ```
 
 
@@ -133,9 +133,9 @@ Ensure a user is present
     - ssh-dss ...
     telephonenumber:
     - '+555123456'
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 ```
 
 Ensure a user is absent
@@ -143,9 +143,9 @@ Ensure a user is absent
 - ipa_user:
     name: brain
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 ```
 
 # License

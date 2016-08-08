@@ -48,17 +48,17 @@ EXAMPLES = '''
     name: oinstall
     gidnumber: 54321
     state: present
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 
 # Ensure brain is absent
 - ipa_group:
     name: oinstall
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 '''
 
 RETURN = '''
@@ -125,40 +125,49 @@ class IPAClient:
         return None
 
     def group_find(self, name):
-        return self._post_json(method='group_find', name=name)
+        return self._post_json(method='group_find', name=name, item={'all': True})
 
-    def group_add(self, name, description=None, external=None, gid=None, nonposix=None):
-        group = {}
-        if description is not None:
-            group['description'] = description
-        if external is not None:
-            group['external'] = external
-        if gid is not None:
-            group['gidnumber'] = gid
-        if nonposix is not None:
-            group['nonposix'] = nonposix
-
+    def group_add(self, name, group):
         return self._post_json(method='group_add', name=name, item=group)
 
     def group_del(self, name):
         return self._post_json(method='group_del', name=name)
 
 
+def get_group_dict(description=None, external=None, gid=None, nonposix=None):
+    group = {}
+    if description is not None:
+        group['description'] = description
+    if external is not None:
+        group['external'] = external
+    if gid is not None:
+        group['gidnumber'] = gid
+    if nonposix is not None:
+        group['nonposix'] = nonposix
+    return group
+
+
 def ensure(module, client):
     state = module.params['state']
     name = module.params['name']
 
-    group = client.group_find(name=name)
-    if not group:
+    module_group = get_group_dict(description=module.params['description'], external=module.params['external'],
+                                  gid=module.params['gidnumber'], nonposix=module.params['nonposix'])
+    ipa_group = client.group_find(name=name)
+
+    if not ipa_group:
         if state == 'present':
-            client.group_add(name, description=module.params['description'], external=module.params['external'],
-                             gid=module.params['gidnumber'], nonposix=module.params['nonposix'])
+            if module.check_mode:
+                module.exit_json(changed=True, group=ipa_group)
+            client.group_add(name, group=module_group)
             return True, client.group_find(name)
     else:
         if state == 'absent':
+            if module.check_mode:
+                module.exit_json(changed=True, group=ipa_group)
             client.group_del(name)
             return True, None
-    return False, group
+    return False, ipa_group
 
 
 def main():

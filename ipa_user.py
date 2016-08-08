@@ -18,7 +18,10 @@ options:
     description: Login shell
     required: false
   mail:
-    description: Mail address
+    description:
+    - List of mail addresses assigned to the user.
+    - If an empty list is passed all assigned email addresses will be deleted.
+    - If None is passed email addresses will not be checked or changed.
     required: false
   password:
     description: Password
@@ -26,8 +29,11 @@ options:
   sn:
     description: Surname
     required: false
-  sshpubkeyfp:
-    description: List of public SSH key
+  sshpubkey:
+    description:
+    - List of public SSH key.
+    - If an empty list is passed all assigned public keys will be deleted.
+    - If None is passed SSH public keys will not be checked or changed.
     required: false
   state:
     description: State to ensure
@@ -35,7 +41,10 @@ options:
     default: "present"
     choices: ["present", "absent", "enabled", "disabled"]
   telephonenumber:
-    description: Telephone number
+    description:
+    - List of telephone numbers assigned to the user.
+    - If an empty list is passed all assigned telephone numbers will be deleted.
+    - If None is passed telephone numbers will not be checked or changed.
     required: false
   title:
     description: Title
@@ -73,22 +82,24 @@ EXAMPLES = '''
     state: present
     givenname: Pinky
     sn: Acme
-    mail: pinky@acme.com
-    telephonenumber: '+555123456'
+    mail:
+    - pinky@acme.com
+    telephonenumber:
+    - '+555123456'
     sshpubkeyfp:
     - ssh-rsa ....
     - ssh-dsa ....
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 
 # Ensure brain is absent
 - ipa_user:
     name: brain
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 '''
 
 RETURN = '''
@@ -102,8 +113,6 @@ import base64
 import hashlib
 import json
 import requests
-
-from ansible.module_utils.basic import AnsibleModule
 
 
 class IPAClient:
@@ -146,7 +155,9 @@ class IPAClient:
             err_string = e
         self.module.fail_json(msg='{}: {}'.format(msg, err_string))
 
-    def _post_json(self, method, name, item={}):
+    def _post_json(self, method, name, item=None):
+        if item is None:
+            item = {}
         url = '{base_url}/session/json'.format(base_url=self.get_base_url())
         data = {'method': method, 'params': [[name], item]}
         try:
@@ -204,10 +215,7 @@ def get_user_dict(givenname=None, loginshell=None, mail=None, nsaccountlock=Fals
         user['sn'] = sn
     if sshpubkey is not None:
         user['ipasshpubkey'] = sorted(sshpubkey)
-        sshpubkeyfp = []
-        for pubkey in user['ipasshpubkey']:
-            sshpubkeyfp.append(get_ssh_key_fingerprint(pubkey))
-        user['sshpubkeyfp'] = sshpubkeyfp
+        user['sshpubkeyfp'] = [get_ssh_key_fingerprint(pubkey) for pubkey in user['ipasshpubkey']]
     if telephonenumber is not None:
         user['telephonenumber'] = sorted(telephonenumber)
     if title is not None:
@@ -244,7 +252,8 @@ def user_diff(ipa_user, module_user):
 
 def get_ssh_key_fingerprint(ssh_key):
     """
-    Return the public key fingerprint of a given public SSH key in format "FB:0C:AC:0A:07:94:5B:CE:75:6E:63:32:13:AD:AD:D7 (ssh-rsa)"
+    Return the public key fingerprint of a given public SSH key
+    in format "FB:0C:AC:0A:07:94:5B:CE:75:6E:63:32:13:AD:AD:D7 (ssh-rsa)"
     :param ssh_key:
     :return:
     """
@@ -276,7 +285,8 @@ def ensure(module, client):
                 module.exit_json(changed=True, user=module_user)
 
             # sshpubkeyfp must not be part of the dictionary but is added to make comparison of existing users eaiser by
-            # method get_user_dict, so it needs to be removed. Otherwise the IPA API responds: Unknown option: sshpubkeyfp"
+            # method get_user_dict, so it needs to be removed.
+            # Otherwise the IPA API responds with: Unknown option: sshpubkeyfp"
             if 'sshpubkeyfp' in module_user:
                 del module_user['sshpubkeyfp']
             client.user_add(name, module_user)
@@ -344,6 +354,8 @@ def main():
     except Exception as e:
         module.fail_json(msg=e.message)
 
+
+from ansible.module_utils.basic import AnsibleModule
 
 if __name__ == '__main__':
     main()

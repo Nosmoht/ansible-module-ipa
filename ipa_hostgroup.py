@@ -21,6 +21,7 @@ options:
     description:
     - List of hosts that belong to the hostgroup.
     - If an empty list is passed all hosts will be removed from the group.
+    - If None is passed assigned hosts will not be checked or changed.
     required: false
   state:
     description: State to ensure
@@ -58,17 +59,17 @@ EXAMPLES = '''
     state: present
     host:
     - db.example.com
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 
 # Ensure hostgroup databases is absent
 - ipa_hostgroup:
     name: databases
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 '''
 
 RETURN = '''
@@ -124,7 +125,10 @@ class IPAClient:
             err_string = e
         self.module.fail_json(msg='{}: {}'.format(msg, err_string))
 
-    def _post_json(self, method, name, item={}):
+    def _post_json(self, method, name, item=None):
+        if item is None:
+            item = {}
+
         url = '{base_url}/session/json'.format(base_url=self.get_base_url())
         data = {'method': method, 'params': [[name], item]}
         try:
@@ -149,7 +153,7 @@ class IPAClient:
         return None
 
     def hostgroup_find(self, name):
-        return self._post_json(method='hostgroup_find', name=name)
+        return self._post_json(method='hostgroup_find', name=name, item={'all': True})
 
     def hostgroup_add(self, name, hostgroup):
         return self._post_json(method='hostgroup_add', name=name, item=hostgroup)
@@ -167,7 +171,7 @@ class IPAClient:
         return self._post_json(method='hostgroup_remove_member', name=name, item=host)
 
 
-def get_hostgroup_dict(name, description=None):
+def get_hostgroup_dict(description=None):
     data = {}
     if description is not None:
         data['description'] = description
@@ -182,13 +186,19 @@ def ensure(module, client):
         host.sort()
 
     ipa_hostgroup = client.hostgroup_find(name=name)
-    hostgroup = get_hostgroup_dict(name=name, description=module.params['description'])
+    module_hostgroup = get_hostgroup_dict(description=module.params['description'])
 
     if state == 'present':
         if not ipa_hostgroup:
-            client.hostgroup_add(name=name, hostgroup=hostgroup)
+            if module.check_mode:
+                module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+
+            client.hostgroup_add(name=name, hostgroup=module_hostgroup)
 
             if host is not None:
+                if module.check_mode:
+                    module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+
                 client.hostgroup_add_member(name=name, host={'host': host})
 
             return True, client.hostgroup_find(name=name)
@@ -201,12 +211,18 @@ def ensure(module, client):
             # Hosts that a part of the group but shouldn't must be removed
             hosts = list(set(ipa_host) - set(host))
             if len(hosts) > 0:
+                if module.check_mode:
+                    module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+
                 client.hostgroup_remove_member(name=name, host={'host': hosts})
                 changed = True
 
             # Hosts that a not port of the group but should must be added
             hosts = list(set(host) - set(ipa_host))
             if len(hosts) > 0:
+                if module.check_mode:
+                    module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+
                 client.hostgroup_add_member(name=name, host={'host': hosts})
                 changed = True
 
@@ -215,6 +231,9 @@ def ensure(module, client):
         return False, ipa_hostgroup
     else:
         if ipa_hostgroup:
+            if module.check_mode:
+                module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+
             client.hostgroup_del(name=name)
             return True, None
     return False, ipa_hostgroup

@@ -21,7 +21,10 @@ options:
     default: "present"
     choices: ["present", "absent"]
   user:
-    description: List of user names that belong to the role
+    description:
+    - List of user names that belong to the role.
+    - If an empty list is passed all assigned users will be deleted.
+    - If None is passed users will not be checked or changed.
     required: false
   ipa_port:
     description: Port of IPA server
@@ -54,18 +57,18 @@ EXAMPLES = '''
     user:
     - pinky
     - brain
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 
 
 - name: ensure role is absent
   ipa_role:
     name: dba
     state: absent
-    ip_host: ipa.example.com
-    ip_user: admin
-    ip_pass: topsecret
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
 '''
 
 RETURN = '''
@@ -121,7 +124,10 @@ class IPAClient:
             err_string = e
         self.module.fail_json(msg='{}: {}'.format(msg, err_string))
 
-    def _post_json(self, method, name, item={}):
+    def _post_json(self, method, name, item=None):
+        if item is None:
+            item = {}
+
         url = '{base_url}/session/json'.format(base_url=self.get_base_url())
         data = {'method': method, 'params': [[name], item]}
         try:
@@ -146,7 +152,7 @@ class IPAClient:
         return None
 
     def role_find(self, name):
-        return self._post_json(method='role_find', name=name)
+        return self._post_json(method='role_find', name=name, item={'all': True})
 
     def role_add(self, name, role):
         return self._post_json(method='role_add', name=name, item=role)
@@ -207,14 +213,39 @@ def ensure(module, client):
             return True, client.role_find(name=name)
     else:
         if state == 'present':
+            changed = False
             diff = role_diff(actual=ipa_role, target=module_role)
             if len(diff) > 0:
 
                 if module.check_mode:
-                    module.exit_json(changed=True, role=module_role)
+                    module.exit_json(changed=True, role=ipa_role)
 
                 client.role_mod(name=name, role=module_role)
-                return True, client.user_find(name=name)
+                changed = True
+
+            # List of users that must be removed
+            user_diff = list(set(ipa_role.get('member_user', [])) - set(user))
+            if len(user_diff) > 0:
+                if module.check_mode:
+                    module.exit_json(changed=True, role=ipa_role)
+
+                for i in user_diff:
+                    client.role_remove_member(name=name, member={'user': i})
+                changed = True
+
+            # List of users that must be added
+            user_diff = list(set(user) - set(ipa_role.get('member_user', [])))
+            if len(user_diff) > 0:
+                if module.check_mode:
+                    module.exit_json(changed=True, role=ipa_role)
+
+                for i in user_diff:
+                    client.role_add_member(name=name, member={'user': i})
+                changed = True
+
+            if changed:
+                return True, client.role_find(name=name)
+
         if state == 'absent':
             if module.check_mode:
                 module.exit_json(changed=True, role=ipa_role)
