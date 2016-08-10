@@ -298,6 +298,13 @@ def ensure(module, client):
             if len(diff) > 0:
                 if module.check_mode:
                     module.exit_json(changed=True, user=ipa_user)
+
+                # sshpubkeyfp must not be part of the dictionary but is added to make comparison of existing users eaiser by
+                # method get_user_dict, so it needs to be removed.
+                # Otherwise the IPA API responds with: Unknown option: sshpubkeyfp"
+                if 'sshpubkeyfp' in module_user:
+                    del module_user['sshpubkeyfp']
+
                 client.user_mod(name=name, user=module_user)
                 return True, client.user_find(name=name)
         if state == 'absent':
