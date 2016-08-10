@@ -209,15 +209,14 @@ def get_user_dict(givenname=None, loginshell=None, mail=None, nsaccountlock=Fals
     if loginshell is not None:
         user['loginshell'] = loginshell
     if mail is not None:
-        user['mail'] = sorted(mail)
+        user['mail'] = mail
     user['nsaccountlock'] = nsaccountlock
     if sn is not None:
         user['sn'] = sn
     if sshpubkey is not None:
-        user['ipasshpubkey'] = sorted(sshpubkey)
-        user['sshpubkeyfp'] = [get_ssh_key_fingerprint(pubkey) for pubkey in user['ipasshpubkey']]
+        user['ipasshpubkey'] = sshpubkey
     if telephonenumber is not None:
-        user['telephonenumber'] = sorted(telephonenumber)
+        user['telephonenumber'] = telephonenumber
     if title is not None:
         user['title'] = title
 
@@ -238,15 +237,28 @@ def user_diff(ipa_user, module_user):
     """
     #    return [item for item in module_user.keys() if module_user.get(item, None) != ipa_user.get(item, None)]
     result = []
-    # Remove the ipasshpubkey element as it is not returned from IPA. IPA returns the fingerprint of each key instead.
-    module_user = {key: module_user[key] for key in module_user if key != 'ipasshpubkey'}
+    # sshpubkeyfp is the list of ssh key fingerprints. IPA doesn't return the keys itself but instead the fingerprints.
+    # These are used for comparison.
+    sshpubkey = None
+    if 'ipasshpubkey' in module_user:
+        module_user['sshpubkeyfp'] = [get_ssh_key_fingerprint(pubkey) for pubkey in module_user['ipasshpubkey']]
+        # Remove the ipasshpubkey element as it is not returned from IPA but save it's value to be used later on
+        sshpubkey = module_user['ipasshpubkey']
+        del module_user['ipasshpubkey']
     for key in module_user:
         mod_value = module_user.get(key, None)
         ipa_value = ipa_user.get(key, None)
         if isinstance(ipa_value, list) and not isinstance(mod_value, list):
             mod_value = [mod_value]
+        if isinstance(ipa_value, list) and isinstance(mod_value, list):
+            mod_value = sorted(mod_value)
+            ipa_value = sorted(ipa_value)
         if mod_value != ipa_value:
             result.append(key)
+    # If there are public keys, remove the fingerprints and add them back to the dict
+    if sshpubkey is not None:
+        del module_user['sshpubkeyfp']
+        module_user['ipasshpubkey'] = sshpubkey
     return result
 
 
@@ -284,11 +296,6 @@ def ensure(module, client):
             if module.check_mode:
                 module.exit_json(changed=True, user=module_user)
 
-            # sshpubkeyfp must not be part of the dictionary but is added to make comparison of existing users eaiser by
-            # method get_user_dict, so it needs to be removed.
-            # Otherwise the IPA API responds with: Unknown option: sshpubkeyfp"
-            if 'sshpubkeyfp' in module_user:
-                del module_user['sshpubkeyfp']
             client.user_add(name, module_user)
 
             return True, client.user_find(name=name)
@@ -298,12 +305,6 @@ def ensure(module, client):
             if len(diff) > 0:
                 if module.check_mode:
                     module.exit_json(changed=True, user=ipa_user)
-
-                # sshpubkeyfp must not be part of the dictionary but is added to make comparison of existing users eaiser by
-                # method get_user_dict, so it needs to be removed.
-                # Otherwise the IPA API responds with: Unknown option: sshpubkeyfp"
-                if 'sshpubkeyfp' in module_user:
-                    del module_user['sshpubkeyfp']
 
                 client.user_mod(name=name, user=module_user)
                 return True, client.user_find(name=name)
