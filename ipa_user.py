@@ -200,7 +200,8 @@ class IPAClient:
         return self._post_json(method='user_enable', name=name)
 
 
-def get_user_dict(givenname=None, loginshell=None, mail=None, sn=None, sshpubkey=None, telephonenumber=None,
+def get_user_dict(givenname=None, loginshell=None, mail=None, nsaccountlock=False, sn=None, sshpubkey=None,
+                  telephonenumber=None,
                   title=None):
     user = {}
     if givenname is not None:
@@ -209,6 +210,7 @@ def get_user_dict(givenname=None, loginshell=None, mail=None, sn=None, sshpubkey
         user['loginshell'] = loginshell
     if mail is not None:
         user['mail'] = sorted(mail)
+    user['nsaccountlock'] = nsaccountlock
     if sn is not None:
         user['sn'] = sn
     if sshpubkey is not None:
@@ -268,10 +270,11 @@ def get_ssh_key_fingerprint(ssh_key):
 def ensure(module, client):
     state = module.params['state']
     name = module.params['name']
+    nsaccountlock = state == 'disabled'
 
     module_user = get_user_dict(givenname=module.params.get('givenname'), loginshell=module.params['loginshell'],
                                 mail=module.params['mail'], sn=module.params['sn'],
-                                sshpubkey=module.params['sshpubkey'],
+                                sshpubkey=module.params['sshpubkey'], nsaccountlock=nsaccountlock,
                                 telephonenumber=module.params['telephonenumber'], title=module.params['title'])
 
     ipa_user = client.user_find(name=name)
@@ -288,10 +291,6 @@ def ensure(module, client):
                 del module_user['sshpubkeyfp']
             client.user_add(name, module_user)
 
-            if state == 'enabled':
-                client.user_enable(name=name)
-            if state == 'disable':
-                client.user_disable(name=name)
             return True, client.user_find(name=name)
     else:
         if state in ['present', 'enabled', 'disabled']:
@@ -299,6 +298,13 @@ def ensure(module, client):
             if len(diff) > 0:
                 if module.check_mode:
                     module.exit_json(changed=True, user=ipa_user)
+
+                # sshpubkeyfp must not be part of the dictionary but is added to make comparison of existing users eaiser by
+                # method get_user_dict, so it needs to be removed.
+                # Otherwise the IPA API responds with: Unknown option: sshpubkeyfp"
+                if 'sshpubkeyfp' in module_user:
+                    del module_user['sshpubkeyfp']
+
                 client.user_mod(name=name, user=module_user)
                 return True, client.user_find(name=name)
         if state == 'absent':
