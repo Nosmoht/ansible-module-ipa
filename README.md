@@ -4,6 +4,7 @@ Ansible IPA modules
 - [Introduction](#introduction)
 - [Usage](#usage)
  - [Group](#group)
+ - [Host](#host)
  - [Hostgroup](#hostgroup)
  - [Role](#role)
  - [Sudo rule](#sudo_rule)
@@ -32,6 +33,55 @@ Ensure group is absent
 ```yaml
 - ipa_group:
     name: testgroup
+    state: absent
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+## Host
+```yaml
+- name: ensure host is present
+  ipa_host:
+    name: host01.example.com
+    description: Example host
+    ip_address: 192.168.0.123
+    nshostlocation: Lab
+    nsosversion: CentOS 7
+    nshardwareplatform: Lenovo T61
+    macaddress:
+    - "08:00:27:E3:B1:2D"
+    - "52:54:00:BD:97:1E"
+    state: present
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+```yaml
+- name: ensure host without DNS record
+  ipa_host:
+    name: no-dns-record.example.com
+    force: yes
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+```yaml
+- name: ensure host is disabled
+  ipa_host:
+    name: host01.example.com
+    state: disabled
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+```yaml
+- name: ensure host is absent
+  ipa_host:
+    name: host01.example.com
     state: absent
     ipa_host: ipa.example.com
     ipa_user: admin
