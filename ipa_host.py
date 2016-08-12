@@ -224,7 +224,7 @@ def get_host_dict(description=None, force=None, ip_address=None, nshostlocation=
 
 
 def get_host_diff(ipa_host, module_host):
-    compareable_keys = ['description', 'ip_address', 'nshostlocation', 'nshardwareplatform', 'nsosversion',
+    compareable_keys = ['description', 'nshostlocation', 'nshardwareplatform', 'nsosversion',
                         'usercertificate',
                         'macaddress']
     data = []
@@ -281,7 +281,7 @@ def ensure(module, client):
         if ipa_host:
             changed = True
             if module.check_mode:
-                module.exit_json(changed=True, host=ipa_host)
+                module.exit_json(changed=changed, host=ipa_host)
 
             client.host_del(name=name)
 
