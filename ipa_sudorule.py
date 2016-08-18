@@ -31,10 +31,13 @@ options:
     - List of hosts assigned to the rule.
     - If an empty list is passed all hosts will be removed from the rule.
     - If option is omitted hosts will not be checked or changed.
+    - Option C(hostcategory) must be omitted to assign hosts.
     required: false
   hostcategory:
     description:
     - Host category the rule applies to.
+    - If 'all' is passed one must omit C(host) and C(hostgroup).
+    - Option C(host) and C(hostgroup) must be omitted to assign 'all'.
     choices: ['all']
     required: false
   hostgroup:
@@ -42,6 +45,7 @@ options:
     - List of host groups assigned to the rule.
     - If an empty list is passed all host groups will be removed from the rule.
     - If option is omitted host groups will not be checked or changed.
+    - Option C(hostcategory) must be omitted to assign host groups.
     required: false
   user:
     description:
@@ -294,6 +298,7 @@ def ensure(module, client):
     name = module.params['name']
     cmd = module.params['cmd']
     host = module.params['host']
+    hostcategory = module.params['hostcategory']
     hostgroup = module.params['hostgroup']
     ipaenabledflag = state in ['present', 'enabled']
     sudoopt = module.params['sudoopt']
@@ -302,7 +307,7 @@ def ensure(module, client):
 
     module_sudorule = get_sudorule_dict(cmdcategory=module.params['cmdcategory'],
                                         description=module.params['description'],
-                                        hostcategory=module.params['hostcategory'],
+                                        hostcategory=hostcategory,
                                         ipaenabledflag=ipaenabledflag,
                                         usercategory=module.params['usercategory'])
     ipa_sudorule = client.sudorule_find(name=name)
@@ -318,16 +323,30 @@ def ensure(module, client):
             if len(diff) > 0:
                 changed = True
                 if not module.check_mode:
+                    if 'hostcategory' in diff:
+                        if ipa_sudorule.get('memberhost_host', None) is not None:
+                            client.sudorule_remove_host(name=name,
+                                                        item={'host': ipa_sudorule.get('memberhost_host', None)})
+                        if ipa_sudorule.get('memberhost_group', None) is not None:
+                            client.sudorule_remove_host(name=name,
+                                                        item={'hostgroup': ipa_sudorule.get('memberhost_group', None)})
+
                     client.sudorule_mod(name=name, item=module_sudorule)
 
         if cmd is not None:
             client.sudorule_add_allow_command(name=name, item=cmd)
 
         if host is not None:
+            if hostcategory is None and ipa_sudorule.get('hostcategory', None) == ['all'] and not module.check_mode:
+                client.sudorule_mod(name=name, item={'hostcategory': None})
+
             changed = changed or modify_if_diff(module, name, ipa_sudorule.get('memberhost_host', []), host,
                                                 client.sudorule_add_host,
                                                 client.sudorule_remove_host, 'host')
+
         if hostgroup is not None:
+            if hostcategory is None and ipa_sudorule.get('hostcategory', None) == ['all']:
+                client.sudorule_mod(name=name, item={'hostcategory': None})
             changed = changed or modify_if_diff(module, name, ipa_sudorule.get('memberhost_group', []), hostgroup,
                                                 client.sudorule_add_host,
                                                 client.sudorule_remove_host, 'hostgroup')
@@ -374,6 +393,7 @@ def main():
             ipa_user=dict(type='str', required=False, default='admin'),
             ipa_pass=dict(type='str', required=True, no_log=True),
         ),
+        mutually_exclusive=[['hostcategory', 'host'], ['hostcategory', 'hostgroup']],
         supports_check_mode=True,
     )
 
