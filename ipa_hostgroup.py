@@ -192,6 +192,7 @@ def ensure(module, client):
             changed = True
             if not module.check_mode:
                 client.hostgroup_add(name=name, item=module_hostgroup)
+                ipa_hostgroup = client.hostgroup_find(name=name)
 
         if host is not None:
             ipa_host = ipa_hostgroup.get('member_host', [])
