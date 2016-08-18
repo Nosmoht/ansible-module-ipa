@@ -155,20 +155,20 @@ class IPAClient:
     def hostgroup_find(self, name):
         return self._post_json(method='hostgroup_find', name=name, item={'all': True})
 
-    def hostgroup_add(self, name, hostgroup):
-        return self._post_json(method='hostgroup_add', name=name, item=hostgroup)
+    def hostgroup_add(self, name, item):
+        return self._post_json(method='hostgroup_add', name=name, item=item)
 
-    def hostgroup_mod(self, name, hostgroup):
-        return self._post_json(method='hostgroup_mod', name=name, item=hostgroup)
+    def hostgroup_mod(self, name, item):
+        return self._post_json(method='hostgroup_mod', name=name, item=item)
 
     def hostgroup_del(self, name):
         return self._post_json(method='hostgroup_del', name=name)
 
-    def hostgroup_add_member(self, name, host):
-        return self._post_json(method='hostgroup_add_member', name=name, item=host)
+    def hostgroup_add_member(self, name, item):
+        return self._post_json(method='hostgroup_add_member', name=name, item=item)
 
-    def hostgroup_remove_member(self, name, host):
-        return self._post_json(method='hostgroup_remove_member', name=name, item=host)
+    def hostgroup_remove_member(self, name, item):
+        return self._post_json(method='hostgroup_remove_member', name=name, item=item)
 
 
 def get_hostgroup_dict(description=None):
@@ -182,61 +182,38 @@ def ensure(module, client):
     name = module.params['name']
     state = module.params['state']
     host = module.params['host']
-    if host is not None:
-        host.sort()
 
     ipa_hostgroup = client.hostgroup_find(name=name)
     module_hostgroup = get_hostgroup_dict(description=module.params['description'])
 
+    changed = False
     if state == 'present':
         if not ipa_hostgroup:
-            if module.check_mode:
-                module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+            changed = True
+            if not module.check_mode:
+                client.hostgroup_add(name=name, item=module_hostgroup)
 
-            client.hostgroup_add(name=name, hostgroup=module_hostgroup)
-
-            if host is not None:
-                if module.check_mode:
-                    module.exit_json(changed=True, hostgroup=ipa_hostgroup)
-
-                client.hostgroup_add_member(name=name, host={'host': host})
-
-            return True, client.hostgroup_find(name=name)
-
-        changed = False
-        # Host members
         if host is not None:
             ipa_host = ipa_hostgroup.get('member_host', [])
 
-            # Hosts that a part of the group but shouldn't must be removed
-            hosts = list(set(ipa_host) - set(host))
-            if len(hosts) > 0:
-                if module.check_mode:
-                    module.exit_json(changed=True, hostgroup=ipa_hostgroup)
-
-                client.hostgroup_remove_member(name=name, host={'host': hosts})
+            diff = list(set(ipa_host) - set(host))
+            if len(diff) > 0:
                 changed = True
+                if not module.check_mode:
+                    client.hostgroup_remove_member(name=name, item={'host': diff})
 
-            # Hosts that a not port of the group but should must be added
-            hosts = list(set(host) - set(ipa_host))
-            if len(hosts) > 0:
-                if module.check_mode:
-                    module.exit_json(changed=True, hostgroup=ipa_hostgroup)
-
-                client.hostgroup_add_member(name=name, host={'host': hosts})
-                changed = True
-
-        if changed:
-            return True, client.hostgroup_find(name=name)
-        return False, ipa_hostgroup
+            diff = list(set(host) - set(ipa_host))
+            if len(diff) > 0:
+                changed = False
+                if not module.check_mode:
+                    client.hostgroup_add_member(name=name, item={'host': diff})
     else:
         if ipa_hostgroup:
+            changed = True
             if module.check_mode:
-                module.exit_json(changed=True, hostgroup=ipa_hostgroup)
+                client.hostgroup_del(name=name)
 
-            client.hostgroup_del(name=name)
-            return True, None
-    return False, ipa_hostgroup
+    return changed, client.hostgroup_find(name=name)
 
 
 def main():
