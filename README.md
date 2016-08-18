@@ -188,11 +188,29 @@ to run every command on every hosts with sudo without being asked for a password
     cmdcategory: all
     description: Allow to run every command with sudo without password
     hostcategory: all
-    sudoopt: '!authenticate'
-    groups:
-    - ipausers
-    users:
-    - pinky
+    sudoopt:
+    - '!authenticate'
+    usercategory: all
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+Ensure user group developers can run every command on host group db-server as
+well as on host db01.example.com.
+```yaml
+- ipa_sudorule:
+    name: sudo_dev_dbserver
+    description: Allow developers to run every command with sudo on all database server
+    cmdcategory: all
+    host:
+    - db01.example.com
+    hostgroup:
+    - db-server
+    sudoopt:
+    - '!authenticate'
+    usergroup:
+    - developers
     ipa_host: ipa.example.com
     ipa_user: admin
     ipa_pass: topsecret
