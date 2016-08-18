@@ -1,6 +1,133 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+DOCUMENTATION = '''
+---
+module: ipa_sudorule
+author: Thomas Krahn (@Nosmoht)
+short_description: Manager IPA sudo rule
+description:
+- Add, modify or delete sudo rule within IPA server using IPA API.
+options:
+  cn:
+    description:
+    - Canonical name.
+    - Can not be changed as it is the unique identifier.
+    required: true
+    aliases: ['name']
+  cmdcategory:
+    description:
+    - Command category the rule applies to.
+    choices: ['all']
+    required: false
+  cmd:
+    description:
+    - List of commands assigned to the rule.
+    - If an empty list is passed all commands will be removed from the rule.
+    - If option is omitted commands will not be checked or changed.
+    required: false
+  host:
+    description:
+    - List of hosts assigned to the rule.
+    - If an empty list is passed all hosts will be removed from the rule.
+    - If option is omitted hosts will not be checked or changed.
+    required: false
+  hostcategory:
+    description:
+    - Host category the rule applies to.
+    choices: ['all']
+    required: false
+  hostgroup:
+    description:
+    - List of host groups assigned to the rule.
+    - If an empty list is passed all host groups will be removed from the rule.
+    - If option is omitted host groups will not be checked or changed.
+    required: false
+  user:
+    description:
+    - List of users assigned to the rule.
+    - If an empty list is passed all users will be removed from the rule.
+    - If option is omitted users will not be checked or changed.
+    required: false
+  usercategory:
+    description:
+    - User category the rule applies to.
+    choices: ['all']
+    required: false
+  usergroup:
+    description:
+    - List of user groups assigned to the rule.
+    - If an empty list is passed all user groups will be removed from the rule.
+    - If option is omitted user groups will not be checked or changed.
+    required: false
+  state:
+    description: State to ensure
+    required: false
+    default: present
+    choices: ['present', 'absent', 'enabled', 'disabled']
+  ipa_port:
+    description: Port of IPA server
+    required: false
+    default: 443
+  ipa_host:
+    description: IP or hostname of IPA server
+    required: false
+    default: "ipa.example.com"
+  ipa_user:
+    description: Administrative account used on IPA server
+    required: false
+    default: "admin"
+  ipa_pass:
+    description: Password of administrative user
+    required: true
+  ipa_prot:
+    description: Protocol used by IPA server
+    required: false
+    default: "https"
+    choices: ["http", "https"]
+'''
+
+EXAMPLES = '''
+# Ensure sudo rule is present thats allows all every body to execute any command on any host without beeing asked for a password.
+- ipa_sudorule:
+    name: sudo_all_nopasswd
+    cmdcategory: all
+    description: Allow to run every command with sudo without password
+    hostcategory: all
+    sudoopt:
+    - '!authenticate'
+    usercategory: all
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+
+# Ensure user group developers can run every command on host group db-server as well as on host db01.example.com.
+```yaml
+- ipa_sudorule:
+    name: sudo_dev_dbserver
+    description: Allow developers to run every command with sudo on all database server
+    cmdcategory: all
+    host:
+    - db01.example.com
+    hostgroup:
+    - db-server
+    sudoopt:
+    - '!authenticate'
+    usergroup:
+    - developers
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+'''
+
+RETURN = '''
+sudorule:
+  description: Sudorule as returned by IPA
+  returned: if found
+  type: dictionary
+'''
+
 import requests
 import json
 
