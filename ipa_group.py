@@ -4,17 +4,26 @@
 DOCUMENTATION = '''
 ---
 module: ipa_group
+author: Thomas Krahn (@Nosmoht)
 short_description: Manager IPA group
 description:
 - Add, modify and delete group within IPA server
 options:
-  name:
+  cn:
     description:
-    - Group name
+    - Canonical name.
+    - Can not be changed as it is the unique identifier.
     required: true
+    aliases: ['name']
+  external:
+    description:
+    required: false
   gidnumber:
     description:
     - GID
+    required: false
+  nonposix:
+    description:
     required: false
   state:
     description: State to ensure
@@ -65,7 +74,7 @@ RETURN = '''
 user:
   description: JSON data of group as returned by IPA
   returned: if found
-  type: string
+  type: dictionary
 '''
 
 import json
