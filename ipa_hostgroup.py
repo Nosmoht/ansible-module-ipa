@@ -205,7 +205,7 @@ def ensure(module, client):
 
             diff = list(set(host) - set(ipa_host))
             if len(diff) > 0:
-                changed = False
+                changed = True
                 if not module.check_mode:
                     client.hostgroup_add_member(name=name, item={'host': diff})
     else:
