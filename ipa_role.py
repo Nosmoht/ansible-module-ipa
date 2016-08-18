@@ -15,6 +15,29 @@ options:
   description:
     description: Role description
     required: false
+  group:
+    description:
+    - List of group names assign.
+    - If an empty list is passed all assigned groups will be removed from the role.
+    - If option is omitted groups will not be checked or changed.
+  host:
+    description:
+    - List of host names to assign.
+    - If an empty list is passed all assigned hosts will be removed from the role.
+    - If option is omitted hosts will not be checked or changed.
+    required: false
+  hostgroup:
+    description:
+    - List of host group names to assign.
+    - If an empty list is passed all assigned host groups will be removed from the role.
+    - If option is omitted host groups will not be checked or changed.
+    required: false
+  service:
+    description:
+    - List of service names to assign.
+    - If an empty list is passed all assigned services will be removed from the role.
+    - If option is omitted services will not be checked or changed.
+    required: false
   state:
     description: State to ensure
     required: false
@@ -22,9 +45,9 @@ options:
     choices: ["present", "absent"]
   user:
     description:
-    - List of user names that belong to the role.
-    - If an empty list is passed all assigned users will be deleted.
-    - If None is passed users will not be checked or changed.
+    - List of user names to assign.
+    - If an empty list is passed all assigned users will be removed from the role.
+    - If option is omitted users will not be checked or changed.
     required: false
   ipa_port:
     description: Port of IPA server
@@ -61,6 +84,18 @@ EXAMPLES = '''
     ipa_user: admin
     ipa_pass: topsecret
 
+- name: ensure role with certain details
+  ipa_role:
+    name: another-role
+    description: Just another role
+    group:
+    - editors
+    host:
+    - host01.example.com
+    hostgroup:
+    - hostgroup01
+    service:
+    - service01
 
 - name: ensure role is absent
   ipa_role:
@@ -154,20 +189,20 @@ class IPAClient:
     def role_find(self, name):
         return self._post_json(method='role_find', name=name, item={'all': True})
 
-    def role_add(self, name, role):
-        return self._post_json(method='role_add', name=name, item=role)
+    def role_add(self, name, item):
+        return self._post_json(method='role_add', name=name, item=item)
 
-    def role_mod(self, name, role):
-        return self._post_json(method='role_mod', name=name, item=role)
+    def role_mod(self, name, item):
+        return self._post_json(method='role_mod', name=name, item=item)
 
     def role_del(self, name):
         return self._post_json(method='role_del', name=name)
 
-    def role_add_member(self, name, member):
-        return self._post_json(method='role_add_member', name=name, item=member)
+    def role_add_member(self, name, item):
+        return self._post_json(method='role_add_member', name=name, item=item)
 
-    def role_remove_member(self, name, member):
-        return self._post_json(method='role_remove_member', name=name, item=member)
+    def role_remove_member(self, name, item):
+        return self._post_json(method='role_remove_member', name=name, item=item)
 
 
 def get_role_dict(description=None):
@@ -177,82 +212,93 @@ def get_role_dict(description=None):
     return data
 
 
-def role_diff(target, actual):
+def get_role_diff(ipa_role, module_role):
     data = []
-    for key in target:
-        target_value = target.get(key)
-        actual_value = actual.get(key)
-        if isinstance(actual_value, list) and not isinstance(target_value, list):
-            target_value = [target_value]
-        if target_value != actual_value:
+    compareable_keys = ['description']
+    for key in compareable_keys:
+        ipa_value = ipa_role.get(key, None)
+        module_value = module_role.get(key, None)
+        if isinstance(ipa_value, list) and not isinstance(module_value, list):
+            module_value = [module_value]
+        if isinstance(ipa_value, list) and isinstance(module_value, list):
+            ipa_value = sorted(ipa_value)
+            module_value = sorted(module_value)
+        if ipa_value != module_value:
             data.append(key)
     return data
+
+
+def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_method, item):
+    changed = False
+    diff = list(set(ipa_list) - set(module_list))
+    if len(diff) > 0:
+        changed = True
+        if not module.check_mode:
+            remove_method(name=name, item={item: diff})
+
+    diff = list(set(module_list) - set(ipa_list))
+    if len(diff) > 0:
+        changed = True
+        if not module.check_mode:
+            add_method(name=name, item={item: diff})
+    return changed
 
 
 def ensure(module, client):
     state = module.params['state']
     name = module.params['name']
+    group = module.params['group']
+    host = module.params['host']
+    hostgroup = module.params['hostgroup']
+    service = module.params['service']
     user = module.params['user']
-    if user is not None:
-        user.sort()
 
     module_role = get_role_dict(description=module.params['description'])
-
     ipa_role = client.role_find(name=name)
 
-    if not ipa_role:
-        if state == 'present':
-            if module.check_mode:
-                module.exit_json(changed=True, role=module_role)
-
-            client.role_add(name=name, role=module_role)
-
-            if user is not None:
-                client.role_add_member(name=name, member={'user': user})
-
-            return True, client.role_find(name=name)
-    else:
-        if state == 'present':
-            changed = False
-            diff = role_diff(actual=ipa_role, target=module_role)
+    changed = False
+    if state == 'present':
+        if not ipa_role:
+            changed = True
+            if not module.check_mode:
+                client.role_add(name=name, item=module_role)
+        else:
+            diff = get_role_diff(ipa_role=ipa_role, module_role=module_role)
             if len(diff) > 0:
-
-                if module.check_mode:
-                    module.exit_json(changed=True, role=ipa_role)
-
-                client.role_mod(name=name, role=module_role)
                 changed = True
+                if not module.check_mode:
+                    client.role_mod(name=name, item=module_role)
 
-            # List of users that must be removed
-            user_diff = list(set(ipa_role.get('member_user', [])) - set(user))
-            if len(user_diff) > 0:
-                if module.check_mode:
-                    module.exit_json(changed=True, role=ipa_role)
+        if group is not None:
+            changed = changed or modify_if_diff(module, name, ipa_role.get('member_group', []), group,
+                                                client.role_add_member,
+                                                client.role_remove_member, 'group')
 
-                for i in user_diff:
-                    client.role_remove_member(name=name, member={'user': i})
-                changed = True
+        if host is not None:
+            changed = changed or modify_if_diff(module, name, ipa_role.get('member_host', []), host,
+                                                client.role_add_member,
+                                                client.role_remove_member, 'host')
 
-            # List of users that must be added
-            user_diff = list(set(user) - set(ipa_role.get('member_user', [])))
-            if len(user_diff) > 0:
-                if module.check_mode:
-                    module.exit_json(changed=True, role=ipa_role)
+        if hostgroup is not None:
+            changed = changed or modify_if_diff(module, name, ipa_role.get('member_hostgroup', []), hostgroup,
+                                                client.role_add_member,
+                                                client.role_remove_member, 'hostgroup')
 
-                for i in user_diff:
-                    client.role_add_member(name=name, member={'user': i})
-                changed = True
+        if service is not None:
+            changed = changed or modify_if_diff(module, name, ipa_role.get('member_service', []), service,
+                                                client.role_add_member,
+                                                client.role_remove_member, 'service')
+        if user is not None:
+            changed = changed or modify_if_diff(module, name, ipa_role.get('member_user', []), user,
+                                                client.role_add_member,
+                                                client.role_remove_member, 'user')
+    else:
+        if ipa_role:
+            changed = True
+            if not module.check_mode:
+                client.role_del(name)
 
-            if changed:
-                return True, client.role_find(name=name)
-
-        if state == 'absent':
-            if module.check_mode:
-                module.exit_json(changed=True, role=ipa_role)
-
-            client.role_del(name)
-            return True, None
-    return False, ipa_role
+    return changed, client.role_find(name=name)
 
 
 def main():
@@ -260,6 +306,10 @@ def main():
         argument_spec=dict(
             cn=dict(type='str', required=True, aliases=['name']),
             description=dict(type='str', required=False),
+            group=dict(type='list', required=False),
+            host=dict(type='list', required=False),
+            hostgroup=dict(type='list', required=False),
+            service=dict(type='list', required=False),
             state=dict(type='str', required=False, default='present', choices=['present', 'absent']),
             user=dict(type='list', required=False),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
