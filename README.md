@@ -4,6 +4,7 @@ Ansible IPA modules
 - [Introduction](#introduction)
 - [Usage](#usage)
  - [Group](#group)
+ - [HBAC rule](#hbac_rule)
  - [Host](#host)
  - [Hostgroup](#hostgroup)
  - [Role](#role)
@@ -33,6 +34,46 @@ Ensure group is absent
 ```yaml
 - ipa_group:
     name: testgroup
+    state: absent
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+## HBAC rule
+```yaml
+- name: Ensure rule to allow all users to access any host from any host
+  ipa_hbacrule:
+    name: allow_all
+    description: Allow all users to access any host from any host
+    hostcategory: all
+    servicecategory: all
+    usercategory: all
+    state: present
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+```yaml
+- name:  Ensure rule with certain limitations
+  ipa_hbacrule:
+    name: allow_all_developers_access_to_db
+    description: Allow all developers to access any database from any host
+    hostgroup:
+    - db-server
+    usergroup:
+    - developers
+    state: present
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+```yaml
+- name: Ensure rule is absent
+  ipa_hbacrule:
+    name: rule_to_be_deleted
     state: absent
     ipa_host: ipa.example.com
     ipa_user: admin
