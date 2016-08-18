@@ -255,8 +255,10 @@ def get_sudorule_diff(ipa_sudorule, module_sudorule):
     data = []
     compareable_keys = ['cmdcategory', 'description', 'hostcategory']
     for key in compareable_keys:
-        ipa_value = ipa_sudorule.get(key, None)
         module_value = module_sudorule.get(key, None)
+        if module_value is None:
+            continue
+        ipa_value = ipa_sudorule.get(key, None)
         if isinstance(ipa_value, list) and not isinstance(module_value, list):
             module_value = [module_value]
         if isinstance(ipa_value, list) and isinstance(module_value, list):
