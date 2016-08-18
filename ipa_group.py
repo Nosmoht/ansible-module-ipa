@@ -164,28 +164,29 @@ def ensure(module, client):
                                   gid=module.params['gidnumber'], nonposix=module.params['nonposix'])
     ipa_group = client.group_find(name=name)
 
-    if not ipa_group:
-        if state == 'present':
-            if module.check_mode:
-                module.exit_json(changed=True, group=ipa_group)
-            client.group_add(name, group=module_group)
-            return True, client.group_find(name)
+    changed = False
+    if state == 'present':
+        if not ipa_group:
+            changed = True
+            if not module.check_mode:
+                client.group_add(name, group=module_group)
+
     else:
-        if state == 'absent':
-            if module.check_mode:
-                module.exit_json(changed=True, group=ipa_group)
-            client.group_del(name)
-            return True, None
-    return False, ipa_group
+        if ipa_group:
+            changed = True
+            if not module.check_mode:
+                client.group_del(name)
+
+    return changed, client.group_find(name=name)
 
 
 def main():
     module = AnsibleModule(
         argument_spec=dict(
+            cn=dict(type='str', required=True, aliases=['name']),
             description=dict(type='str', required=False),
             external=dict(type='bool', required=False),
             gidnumber=dict(type='str', required=False, aliases=['gid']),
-            cn=dict(type='str', required=True, aliases=['name']),
             nonposix=dict(type='str', required=False),
             state=dict(type='str', required=False, default='present', choices=['present', 'absent']),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
