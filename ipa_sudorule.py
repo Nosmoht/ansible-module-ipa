@@ -1,6 +1,133 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+DOCUMENTATION = '''
+---
+module: ipa_sudorule
+author: Thomas Krahn (@Nosmoht)
+short_description: Manager IPA sudo rule
+description:
+- Add, modify or delete sudo rule within IPA server using IPA API.
+options:
+  cn:
+    description:
+    - Canonical name.
+    - Can not be changed as it is the unique identifier.
+    required: true
+    aliases: ['name']
+  cmdcategory:
+    description:
+    - Command category the rule applies to.
+    choices: ['all']
+    required: false
+  cmd:
+    description:
+    - List of commands assigned to the rule.
+    - If an empty list is passed all commands will be removed from the rule.
+    - If option is omitted commands will not be checked or changed.
+    required: false
+  host:
+    description:
+    - List of hosts assigned to the rule.
+    - If an empty list is passed all hosts will be removed from the rule.
+    - If option is omitted hosts will not be checked or changed.
+    required: false
+  hostcategory:
+    description:
+    - Host category the rule applies to.
+    choices: ['all']
+    required: false
+  hostgroup:
+    description:
+    - List of host groups assigned to the rule.
+    - If an empty list is passed all host groups will be removed from the rule.
+    - If option is omitted host groups will not be checked or changed.
+    required: false
+  user:
+    description:
+    - List of users assigned to the rule.
+    - If an empty list is passed all users will be removed from the rule.
+    - If option is omitted users will not be checked or changed.
+    required: false
+  usercategory:
+    description:
+    - User category the rule applies to.
+    choices: ['all']
+    required: false
+  usergroup:
+    description:
+    - List of user groups assigned to the rule.
+    - If an empty list is passed all user groups will be removed from the rule.
+    - If option is omitted user groups will not be checked or changed.
+    required: false
+  state:
+    description: State to ensure
+    required: false
+    default: present
+    choices: ['present', 'absent', 'enabled', 'disabled']
+  ipa_port:
+    description: Port of IPA server
+    required: false
+    default: 443
+  ipa_host:
+    description: IP or hostname of IPA server
+    required: false
+    default: "ipa.example.com"
+  ipa_user:
+    description: Administrative account used on IPA server
+    required: false
+    default: "admin"
+  ipa_pass:
+    description: Password of administrative user
+    required: true
+  ipa_prot:
+    description: Protocol used by IPA server
+    required: false
+    default: "https"
+    choices: ["http", "https"]
+'''
+
+EXAMPLES = '''
+# Ensure sudo rule is present thats allows all every body to execute any command on any host without beeing asked for a password.
+- ipa_sudorule:
+    name: sudo_all_nopasswd
+    cmdcategory: all
+    description: Allow to run every command with sudo without password
+    hostcategory: all
+    sudoopt:
+    - '!authenticate'
+    usercategory: all
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+
+# Ensure user group developers can run every command on host group db-server as well as on host db01.example.com.
+```yaml
+- ipa_sudorule:
+    name: sudo_dev_dbserver
+    description: Allow developers to run every command with sudo on all database server
+    cmdcategory: all
+    host:
+    - db01.example.com
+    hostgroup:
+    - db-server
+    sudoopt:
+    - '!authenticate'
+    usergroup:
+    - developers
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+'''
+
+RETURN = '''
+sudorule:
+  description: Sudorule as returned by IPA
+  returned: if found
+  type: dictionary
+'''
+
 import requests
 import json
 
@@ -75,118 +202,176 @@ class IPAClient:
     def sudorule_find(self, name):
         return self._post_json(method='sudorule_find', name=name, item={'all': True})
 
-    def sudorule_add(self, name, sudorule):
-        return self._post_json(method='sudorule_add', name=name, item=sudorule)
-
-    def sudorule_add_option(self, name, ipasudoopt):
-        data = {'ipasudoopt': ipasudoopt}
-        return self._post_json(method='sudorule_add_option', name=name, item=data)
-
-    def sudorule_add_host(self, name, host):
-        data = {'host': host}
-        return self._post_json(method='sudorule_add_host', name=name, item=data)
-
-    def sudorule_add_allow_command(self, name, cmd):
-        data = {'sudocmd': cmd}
-        return self._post_json(method='sudorule_add_allow_command', name=name, item=data)
+    def sudorule_add(self, name, item):
+        return self._post_json(method='sudorule_add', name=name, item=item)
 
     def sudorule_mod(self, name, item):
         return self._post_json(method='sudorule_mod', name=name, item=item)
 
-    def sudorule_add_user(self, name, sudorule):
-        return self._post_json(method='sudorule_add_user', name=name, item=sudorule)
+    def sudorule_del(self, name):
+        return self._post_json(method='sudorule_del', name=name)
 
-    def sudorule_del(self, uid):
-        return self._post_json(method='sudorule_del', name=uid)
+    def sudorule_add_option(self, name, item):
+        return self._post_json(method='sudorule_add_option', name=name, item=item)
+
+    def sudorule_remove_option(self, name, item):
+        return self._post_json(method='sudorule_remove_option', name=name, item=item)
+
+    def sudorule_add_host(self, name, item):
+        return self._post_json(method='sudorule_add_host', name=name, item=item)
+
+    def sudorule_remove_host(self, name, item):
+        return self._post_json(method='sudorule_add_host', name=name, item=item)
+
+    def sudorule_add_allow_command(self, name, item):
+        return self._post_json(method='sudorule_add_allow_command', name=name, item=item)
+
+    def sudorule_remove_allow_command(self, name, item):
+        return self._post_json(method='sudorule_remove_allow_command', name=name, item=item)
+
+    def sudorule_add_user(self, name, item):
+        return self._post_json(method='sudorule_add_user', name=name, item=item)
+
+    def sudorule_remove_user(self, name, item):
+        return self._post_json(method='sudorule_remove_user', name=name, item=item)
 
 
-def get_sudorule_dict(description=None, ipaenabledflag=None):
+def get_sudorule_dict(cmdcategory=None, description=None, hostcategory=None, ipaenabledflag=None, usercategory=None):
     data = {}
+    if cmdcategory is not None:
+        data['cmdcategory'] = cmdcategory
     if description is not None:
         data['description'] = description
+    if hostcategory is not None:
+        data['hostcategory'] = hostcategory
     if ipaenabledflag is not None:
         data['ipaenabledflag'] = ipaenabledflag
+    if usercategory is not None:
+        data['usercategory'] = usercategory
     return data
+
+
+def get_sudorule_diff(ipa_sudorule, module_sudorule):
+    data = []
+    compareable_keys = ['cmdcategory', 'description', 'hostcategory']
+    for key in compareable_keys:
+        ipa_value = ipa_sudorule.get(key, None)
+        module_value = module_sudorule.get(key, None)
+        if isinstance(ipa_value, list) and not isinstance(module_value, list):
+            module_value = [module_value]
+        if isinstance(ipa_value, list) and isinstance(module_value, list):
+            ipa_value = sorted(ipa_value)
+            module_value = sorted(module_value)
+        if ipa_value != module_value:
+            data.append(key)
+    return data
+
+
+def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_method, item):
+    changed = False
+    diff = list(set(ipa_list) - set(module_list))
+    if len(diff) > 0:
+        changed = True
+        if not module.check_mode:
+            for diff_item in diff:
+                remove_method(name=name, item={item: diff_item})
+
+    # Hosts that a not port of the group but should must be added
+    diff = list(set(module_list) - set(ipa_list))
+    if len(diff) > 0:
+        changed = True
+        if not module.check_mode:
+            for diff_item in diff:
+                add_method(name=name, item={item: diff_item})
+
+    return changed
 
 
 def ensure(module, client):
     state = module.params['state']
     name = module.params['name']
     cmd = module.params['cmd']
-    cmdcategory = module.params['cmdcategory']
-    groups = module.params['groups']
     host = module.params['host']
-    hostcategory = module.params['hostcategory']
+    hostgroup = module.params['hostgroup']
     ipaenabledflag = state in ['present', 'enabled']
-    ipasudooptions = module.params['sudoopt']
-    users = module.params['users']
+    sudoopt = module.params['sudoopt']
+    user = module.params['user']
+    usergroup = module.params['usergroup']
 
-    module_sudorule = get_sudorule_dict(description=module.params['description'], ipaenabledflag=ipaenabledflag)
+    module_sudorule = get_sudorule_dict(cmdcategory=module.params['cmdcategory'],
+                                        description=module.params['description'],
+                                        hostcategory=module.params['hostcategory'],
+                                        ipaenabledflag=ipaenabledflag,
+                                        usercategory=module.params['usercategory'])
     ipa_sudorule = client.sudorule_find(name=name)
 
-    if not ipa_sudorule:
-        if state in ['present', 'disabled', 'enabled']:
-            if module.check_mode:
-                return True, None
+    changed = False
+    if state in ['present', 'disabled', 'enabled']:
+        if not ipa_sudorule:
+            changed = True
+            if not module.check_mode:
+                client.sudorule_add(name=name, item=module_sudorule)
+        else:
+            diff = get_sudorule_diff(ipa_sudorule, module_sudorule)
+            if len(diff) > 0:
+                changed = True
+                if not module.check_mode:
+                    client.sudorule_mod(name=name, item=module_sudorule)
 
-            client.sudorule_add(name=name, sudorule=module_sudorule)
+        if cmd is not None:
+            client.sudorule_add_allow_command(name=name, item=cmd)
 
-            if ipasudooptions is not None:
-                for sudooption in ipasudooptions:
-                    client.sudorule_add_option(name=name, ipasudoopt=sudooption)
-
-            if users is not None:
-                client.sudorule_add_user(name=name, users=users)
-
-            if groups is not None:
-                client.sudorule_add_user(name=name, groups=groups)
-
-            if hostcategory is not None:
-                client.sudorule_mod(name=name, item={'hostcategory': hostcategory})
-
-            if host is not None:
-                client.sudorule_add_host(name=name, hosts=host)
-
-            if cmdcategory is not None:
-                client.sudorule_mod(name=name, item={'cmdcategory': cmdcategory})
-
-            if cmd is not None:
-                client.sudorule_add_allow_command(name=name, cmd=cmd)
-
-            return True, client.sudorule_find(name)
+        if host is not None:
+            changed = changed or modify_if_diff(module, name, ipa_sudorule.get('memberhost_host', []), host,
+                                                client.sudorule_add_host,
+                                                client.sudorule_remove_host, 'host')
+        if hostgroup is not None:
+            changed = changed or modify_if_diff(module, name, ipa_sudorule.get('memberhost_group', []), hostgroup,
+                                                client.sudorule_add_host,
+                                                client.sudorule_remove_host, 'hostgroup')
+        if sudoopt is not None:
+            changed = changed or modify_if_diff(module, name, ipa_sudorule.get('ipasudoopt', []), sudoopt,
+                                                client.sudorule_add_option,
+                                                client.sudorule_remove_option, 'ipasudoopt')
+        if user is not None:
+            changed = changed or modify_if_diff(module, name, ipa_sudorule.get('memberuser_user', []), user,
+                                                client.sudorule_add_user,
+                                                client.sudorule_remove_user, 'user')
+        if usergroup is not None:
+            changed = changed or modify_if_diff(module, name, ipa_sudorule.get('memberuser_group', []), usergroup,
+                                                client.sudorule_add_user,
+                                                client.sudorule_remove_user, 'group')
     else:
-        if state == 'absent':
-            if module.check_mode:
-                return True, ipa_sudorule
+        if ipa_sudorule:
+            changed = True
+            if not module.check_mode:
+                client.sudorule_del(name)
 
-            client.sudorule_del(name)
-            return True, None
-
-        changed=False
-    return False, ipa_sudorule
+    return changed, client.sudorule_find(name)
 
 
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            cmdcategory=dict(type='str', required=False),
             cmd=dict(type='list', required=False),
+            cmdcategory=dict(type='str', required=False, choices=['all']),
             cn=dict(type='str', required=True, aliases=['name']),
             description=dict(type='str', required=False),
-            groups=dict(type='list', required=False),
-            hostcategory=dict(type='str', required=False),
             host=dict(type='list', required=False),
+            hostcategory=dict(type='str', required=False, choices=['all']),
+            hostgroup=dict(type='list', required=False),
             sudoopt=dict(type='list', required=False),
             state=dict(type='str', required=False, default='present',
                        choices=['present', 'absent', 'enabled', 'disabled']),
-            users=dict(type='str', required=False),
+            user=dict(type='list', required=False),
+            usercategory=dict(type='str', required=False, choices=['all']),
+            usergroup=dict(type='list', required=False),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
             ipa_host=dict(type='str', required=False, default='ipa.example.com'),
             ipa_port=dict(type='int', required=False, default=443),
             ipa_user=dict(type='str', required=False, default='admin'),
             ipa_pass=dict(type='str', required=True, no_log=True),
         ),
-        mutually_exclusive=[['cmd', 'cmdcategory'], ['host', 'hostcategory']],
         supports_check_mode=True,
     )
 
