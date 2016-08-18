@@ -260,34 +260,25 @@ def ensure(module, client):
                                 usercertificate=module.params['usercertificate'],
                                 macaddress=module.params['macaddress'])
     changed = False
-    if state in ['present', 'disabled']:
+    if state in ['present', 'enabled', 'disabled']:
         if not ipa_host:
-            if module.check_mode:
-                module.exit_json(changed=True, host=ipa_host)
-
-            client.host_add(name=name, host=module_host)
-
             changed = True
-        else:
-            diff = get_host_diff(ipa_host, module_host)
-            if len(diff) > 0:
-                changed = True
-                if module.check_mode:
-                    module.exit_json(changed=changed, host=ipa_host, host_diff=diff)
+            if not module.check_mode:
+                client.host_add(name=name, host=module_host)
 
-                client.host_mod(name=name, host={key: module_host.get(key) for key in diff})
+        diff = get_host_diff(ipa_host, module_host)
+        if len(diff) > 0:
+            changed = True
+            if not module.check_mode:
+                 client.host_mod(name=name, host={key: module_host.get(key) for key in diff})
 
     else:
         if ipa_host:
             changed = True
-            if module.check_mode:
-                module.exit_json(changed=changed, host=ipa_host)
+            if not module.check_mode:
+                client.host_del(name=name)
 
-            client.host_del(name=name)
-
-    if changed:
-        ipa_host = client.host_find(name=name)
-    return changed, ipa_host
+    return changed, client.host_find(name=name)
 
 
 def main():
