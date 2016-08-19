@@ -184,7 +184,7 @@ class IPAClient:
         return None
 
     def host_find(self, name):
-        return self._post_json(method='host_find', name=name, item={'all': True})
+        return self._post_json(method='host_find', name=None, item={'all': True, 'cn': name})
 
     def host_add(self, name, host):
         return self._post_json(method='host_add', name=name, item=host)
@@ -270,7 +270,7 @@ def ensure(module, client):
         if len(diff) > 0:
             changed = True
             if not module.check_mode:
-                 client.host_mod(name=name, host={key: module_host.get(key) for key in diff})
+                client.host_mod(name=name, host={key: module_host.get(key) for key in diff})
 
     else:
         if ipa_host:
