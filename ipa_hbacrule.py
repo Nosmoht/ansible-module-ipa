@@ -332,6 +332,7 @@ def ensure(module, client):
             changed = True
             if not module.check_mode:
                 client.hbacrule_add(name=name, item=module_hbacrule)
+                ipa_hbacrule = client.hbacrule_find(name=name)
         else:
             diff = get_hbcarule_diff(ipa_hbacrule, module_hbacrule)
             if len(diff) > 0:
