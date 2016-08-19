@@ -212,7 +212,7 @@ class IPAClient:
         return None
 
     def hbacrule_find(self, name):
-        return self._post_json(method='hbacrule_find', name=name, item={'all': True})
+        return self._post_json(method='hbacrule_find', name=None, item={'all': True, 'cn': name})
 
     def hbacrule_add(self, name, item):
         return self._post_json(method='hbacrule_add', name=name, item=item)
