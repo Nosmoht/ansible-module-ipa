@@ -257,7 +257,7 @@ def get_sudorule_dict(cmdcategory=None, description=None, hostcategory=None, ipa
 
 def get_sudorule_diff(ipa_sudorule, module_sudorule):
     data = []
-    compareable_keys = ['cmdcategory', 'description', 'hostcategory']
+    compareable_keys = ['cmdcategory', 'description', 'hostcategory', 'usercategory']
     for key in compareable_keys:
         module_value = module_sudorule.get(key, None)
         if module_value is None:
