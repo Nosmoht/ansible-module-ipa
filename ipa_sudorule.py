@@ -317,6 +317,7 @@ def ensure(module, client):
             changed = True
             if not module.check_mode:
                 client.sudorule_add(name=name, item=module_sudorule)
+                ipa_sudorule = client.sudorule_find(name=name)
         else:
             diff = get_sudorule_diff(ipa_sudorule, module_sudorule)
             if len(diff) > 0:
