@@ -271,8 +271,10 @@ def get_hbcarule_diff(ipa_hbcarule, module_hbcarule):
     data = []
     compareable_keys = ['description', 'hostcategory', 'servicecategory', 'sourcehostcategory', 'usercategory']
     for key in compareable_keys:
-        ipa_value = ipa_hbcarule.get(key, None)
         module_value = module_hbcarule.get(key, None)
+        if module_value is None:
+            continue
+        ipa_value = ipa_hbcarule.get(key, None)
         if isinstance(ipa_value, list) and not isinstance(module_value, list):
             module_value = [module_value]
         if isinstance(ipa_value, list) and isinstance(module_value, list):
