@@ -204,7 +204,7 @@ class IPAClient:
         return None
 
     def sudorule_find(self, name):
-        return self._post_json(method='sudorule_find', name=name, item={'all': True})
+        return self._post_json(method='sudorule_find', name=None, item={'all': True, 'cn': name})
 
     def sudorule_add(self, name, item):
         return self._post_json(method='sudorule_add', name=name, item=item)
