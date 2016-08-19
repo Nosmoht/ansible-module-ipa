@@ -327,9 +327,9 @@ def ensure(module, client):
                         if ipa_sudorule.get('memberhost_host', None) is not None:
                             client.sudorule_remove_host(name=name,
                                                         item={'host': ipa_sudorule.get('memberhost_host', None)})
-                        if ipa_sudorule.get('memberhost_group', None) is not None:
-                            client.sudorule_remove_host(name=name,
-                                                        item={'hostgroup': ipa_sudorule.get('memberhost_group', None)})
+                        if ipa_sudorule.get('memberhost_hostgroup', None) is not None:
+                            client.sudorule_remove_host(name=name, item={
+                                'hostgroup': ipa_sudorule.get('memberhost_hostgroup', None)})
 
                     client.sudorule_mod(name=name, item=module_sudorule)
 
