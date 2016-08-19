@@ -182,7 +182,7 @@ class IPAClient:
         return None
 
     def user_find(self, name):
-        return self._post_json(method='user_find', name=name, item={'all': True})
+        return self._post_json(method='user_find', name=None, item={'all': True, 'uid': name})
 
     def user_add(self, name, user):
         return self._post_json(method='user_add', name=name, item=user)
