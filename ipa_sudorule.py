@@ -282,7 +282,6 @@ def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_metho
             for diff_item in diff:
                 remove_method(name=name, item={item: diff_item})
 
-    # Hosts that a not port of the group but should must be added
     diff = list(set(module_list) - set(ipa_list))
     if len(diff) > 0:
         changed = True
