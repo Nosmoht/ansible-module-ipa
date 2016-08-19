@@ -347,7 +347,7 @@ def ensure(module, client):
         if hostgroup is not None:
             if hostcategory is None and ipa_sudorule.get('hostcategory', None) == ['all']:
                 client.sudorule_mod(name=name, item={'hostcategory': None})
-            changed = modify_if_diff(module, name, ipa_sudorule.get('memberhost_group', []), hostgroup,
+            changed = modify_if_diff(module, name, ipa_sudorule.get('memberhost_hostgroup', []), hostgroup,
                                      client.sudorule_add_host,
                                      client.sudorule_remove_host, 'hostgroup') or changed
         if sudoopt is not None:
