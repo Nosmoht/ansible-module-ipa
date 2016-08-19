@@ -340,28 +340,28 @@ def ensure(module, client):
             if hostcategory is None and ipa_sudorule.get('hostcategory', None) == ['all'] and not module.check_mode:
                 client.sudorule_mod(name=name, item={'hostcategory': None})
 
-            changed = changed or modify_if_diff(module, name, ipa_sudorule.get('memberhost_host', []), host,
-                                                client.sudorule_add_host,
-                                                client.sudorule_remove_host, 'host')
+            changed = modify_if_diff(module, name, ipa_sudorule.get('memberhost_host', []), host,
+                                     client.sudorule_add_host,
+                                     client.sudorule_remove_host, 'host') or changed
 
         if hostgroup is not None:
             if hostcategory is None and ipa_sudorule.get('hostcategory', None) == ['all']:
                 client.sudorule_mod(name=name, item={'hostcategory': None})
-            changed = changed or modify_if_diff(module, name, ipa_sudorule.get('memberhost_group', []), hostgroup,
-                                                client.sudorule_add_host,
-                                                client.sudorule_remove_host, 'hostgroup')
+            changed = modify_if_diff(module, name, ipa_sudorule.get('memberhost_group', []), hostgroup,
+                                     client.sudorule_add_host,
+                                     client.sudorule_remove_host, 'hostgroup') or changed
         if sudoopt is not None:
-            changed = changed or modify_if_diff(module, name, ipa_sudorule.get('ipasudoopt', []), sudoopt,
-                                                client.sudorule_add_option,
-                                                client.sudorule_remove_option, 'ipasudoopt')
+            changed = modify_if_diff(module, name, ipa_sudorule.get('ipasudoopt', []), sudoopt,
+                                     client.sudorule_add_option,
+                                     client.sudorule_remove_option, 'ipasudoopt') or changed
         if user is not None:
-            changed = changed or modify_if_diff(module, name, ipa_sudorule.get('memberuser_user', []), user,
-                                                client.sudorule_add_user,
-                                                client.sudorule_remove_user, 'user')
+            changed = modify_if_diff(module, name, ipa_sudorule.get('memberuser_user', []), user,
+                                     client.sudorule_add_user,
+                                     client.sudorule_remove_user, 'user') or changed
         if usergroup is not None:
-            changed = changed or modify_if_diff(module, name, ipa_sudorule.get('memberuser_group', []), usergroup,
-                                                client.sudorule_add_user,
-                                                client.sudorule_remove_user, 'group')
+            changed = modify_if_diff(module, name, ipa_sudorule.get('memberuser_group', []), usergroup,
+                                     client.sudorule_add_user,
+                                     client.sudorule_remove_user, 'group') or changed
     else:
         if ipa_sudorule:
             changed = True
