@@ -340,47 +340,46 @@ def ensure(module, client):
                 if not module.check_mode:
                     client.hbcarule_mod(name=name, item=module_hbacrule)
 
-        # Host members
         if host is not None:
-            changed = changed or modify_if_diff(module, name, ipa_hbacrule.get('memberhost_host', []), host,
-                                                client.hbacrule_add_host,
-                                                client.hbacrule_remove_host, 'host')
+            changed = modify_if_diff(module, name, ipa_hbacrule.get('memberhost_host', []), host,
+                                     client.hbacrule_add_host,
+                                     client.hbacrule_remove_host, 'host') or changed
 
         if hostgroup is not None:
-            changed = changed or modify_if_diff(module, name, ipa_hbacrule.get('memberhost_hostgroup', []), hostgroup,
-                                                client.hbacrule_add_host,
-                                                client.hbacrule_remove_host, 'hostgroup')
+            changed = modify_if_diff(module, name, ipa_hbacrule.get('memberhost_hostgroup', []), hostgroup,
+                                     client.hbacrule_add_host,
+                                     client.hbacrule_remove_host, 'hostgroup') or changed
 
         if service is not None:
-            changed = changed or modify_if_diff(module, name, ipa_hbacrule.get('memberservice_hbacsvc', []), service,
-                                                client.hbacrule_add_service,
-                                                client.hbacrule_remove_service, 'hbacsvc')
+            changed = modify_if_diff(module, name, ipa_hbacrule.get('memberservice_hbacsvc', []), service,
+                                     client.hbacrule_add_service,
+                                     client.hbacrule_remove_service, 'hbacsvc') or changed
 
         if servicegroup is not None:
-            changed = changed or modify_if_diff(module, name, ipa_hbacrule.get('memberservice_hbacsvcgroup', []),
-                                                servicegroup,
-                                                client.hbacrule_add_service,
-                                                client.hbacrule_remove_service, 'hbacsvcgroup')
+            changed = modify_if_diff(module, name, ipa_hbacrule.get('memberservice_hbacsvcgroup', []),
+                                     servicegroup,
+                                     client.hbacrule_add_service,
+                                     client.hbacrule_remove_service, 'hbacsvcgroup') or changed
 
         if sourcehost is not None:
-            changed = changed or modify_if_diff(module, name, ipa_hbacrule.get('sourcehost_host', []), sourcehost,
-                                                client.hbacrule_add_sourcehost,
-                                                client.hbacrule_remove_sourcehost, 'host')
+            changed = modify_if_diff(module, name, ipa_hbacrule.get('sourcehost_host', []), sourcehost,
+                                     client.hbacrule_add_sourcehost,
+                                     client.hbacrule_remove_sourcehost, 'host') or changed
 
         if sourcehostgroup is not None:
-            changed = changed or modify_if_diff(module, name, ipa_hbacrule.get('sourcehost_group', []), sourcehostgroup,
-                                                client.hbacrule_add_sourcehost,
-                                                client.hbacrule_remove_sourcehost, 'hostgroup')
+            changed = modify_if_diff(module, name, ipa_hbacrule.get('sourcehost_group', []), sourcehostgroup,
+                                     client.hbacrule_add_sourcehost,
+                                     client.hbacrule_remove_sourcehost, 'hostgroup') or changed
 
         if user is not None:
-            changed = changed or modify_if_diff(module, name, ipa_hbacrule.get('memberuser_user', []), user,
-                                                client.hbacrule_add_user,
-                                                client.hbacrule_remove_user, 'user')
+            changed = modify_if_diff(module, name, ipa_hbacrule.get('memberuser_user', []), user,
+                                     client.hbacrule_add_user,
+                                     client.hbacrule_remove_user, 'user') or changed
 
         if usergroup is not None:
-            changed = changed or modify_if_diff(module, name, ipa_hbacrule.get('memberuser_group', []), usergroup,
-                                                client.hbacrule_add_user,
-                                                client.hbacrule_remove_user, 'group')
+            changed = modify_if_diff(module, name, ipa_hbacrule.get('memberuser_group', []), usergroup,
+                                     client.hbacrule_add_user,
+                                     client.hbacrule_remove_user, 'group') or changed
     else:
         if ipa_hbacrule:
             changed = True
