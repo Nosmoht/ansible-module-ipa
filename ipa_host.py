@@ -184,7 +184,7 @@ class IPAClient:
         return None
 
     def host_find(self, name):
-        return self._post_json(method='host_find', name=None, item={'all': True, 'cn': name})
+        return self._post_json(method='host_find', name=None, item={'all': True, 'fqdn': name})
 
     def host_add(self, name, host):
         return self._post_json(method='host_add', name=name, item=host)
