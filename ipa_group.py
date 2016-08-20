@@ -22,9 +22,19 @@ options:
     description:
     - GID
     required: false
+  group:
+    description:
+    - List of group names assigned to this group.
+    - If an empty list is passed all groups will be removed from this group.
+    - If option is omitted assigned groups will not be checked or changed.
   nonposix:
     description:
     required: false
+  user:
+    description:
+    - List of user names assigned to this group.
+    - If an empty list is passed all users will be removed from this group.
+    - If option is omitted assigned users will not be checked or changed.
   state:
     description: State to ensure
     required: false
@@ -71,7 +81,7 @@ EXAMPLES = '''
 '''
 
 RETURN = '''
-user:
+group:
   description: JSON data of group as returned by IPA
   returned: if found
   type: dictionary
@@ -112,25 +122,41 @@ class IPAClient:
             s = requests.post(url=url, data=data, headers=headers, verify=False)
             s.raise_for_status()
         except Exception as e:
-            self.module.fail_json(msg='error on login: {}'.format(e.message))
+            self._fail('login', e)
         self.cookies = s.cookies
 
-    def _post_json(self, method, name, item={}):
+    def _fail(self, msg, e):
+        if 'message' in e:
+            err_string = e.get('message')
+        else:
+            err_string = e
+        self.module.fail_json(msg='{}: {}'.format(msg, err_string))
+
+    def _post_json(self, method, name, item=None):
+        if item is None:
+            item = {}
+
         url = '{base_url}/session/json'.format(base_url=self.get_base_url())
         data = {'method': method, 'params': [[name], item]}
         try:
             r = requests.post(url=url, data=json.dumps(data), headers=self.headers, cookies=self.cookies, verify=False)
             r.raise_for_status()
         except Exception as e:
-            self.module.fail_json(msg='error on post {method} request: {err}'.format(method=method, err=e.message))
+            self._fail('post {}'.format(method), e)
 
         resp = json.loads(r.content)
         err = resp.get('error')
         if err is not None:
-            self.module.fail_json(msg='error in {method} response: {err}'.format(method=method, err=err))
+            self._fail('repsonse {}'.format(method), err)
 
         if 'result' in resp:
-            return resp.get('result').get('result')
+            result = resp.get('result')
+            if 'result' in result:
+                result = result.get('result')
+                if isinstance(result, list):
+                    if len(result) > 0:
+                        return result[0]
+            return result
         return None
 
     def group_find(self, name):
@@ -139,8 +165,17 @@ class IPAClient:
     def group_add(self, name, group):
         return self._post_json(method='group_add', name=name, item=group)
 
+    def group_mod(self, name, group):
+        return self._post_json(method='group_mod', name=name, item=group)
+
     def group_del(self, name):
         return self._post_json(method='group_del', name=name)
+
+    def group_add_member(self, name, item):
+        return self._post_json(method='group_add_member', name=name, item=item)
+
+    def group_remove_member(self, name, item):
+        return self._post_json(method='group_remove_member', name=name, item=item)
 
 
 def get_group_dict(description=None, external=None, gid=None, nonposix=None):
@@ -156,9 +191,46 @@ def get_group_dict(description=None, external=None, gid=None, nonposix=None):
     return group
 
 
+def get_group_diff(ipa_group, module_group):
+    data = []
+    compareable_keys = ['description', 'external', 'gidnumber', 'nonposix']
+    for key in compareable_keys:
+        module_value = module_group.get(key, None)
+        if module_value is None:
+            continue
+        ipa_value = ipa_group.get(key, None)
+        if isinstance(ipa_value, list) and not isinstance(module_value, list):
+            module_value = [module_value]
+        if isinstance(ipa_value, list) and isinstance(module_value, list):
+            ipa_value = sorted(ipa_value)
+            module_value = sorted(module_value)
+        if ipa_value != module_value:
+            data.append(key)
+    return data
+
+
+def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_method, item):
+    changed = False
+    diff = list(set(ipa_list) - set(module_list))
+    if len(diff) > 0:
+        changed = True
+        if not module.check_mode:
+            remove_method(name=name, item={item: diff})
+
+    diff = list(set(module_list) - set(ipa_list))
+    if len(diff) > 0:
+        changed = True
+        if not module.check_mode:
+            add_method(name=name, item={item: diff})
+
+    return changed
+
+
 def ensure(module, client):
     state = module.params['state']
     name = module.params['name']
+    group = module.params['group']
+    user = module.params['user']
 
     module_group = get_group_dict(description=module.params['description'], external=module.params['external'],
                                   gid=module.params['gidnumber'], nonposix=module.params['nonposix'])
@@ -170,6 +242,21 @@ def ensure(module, client):
             changed = True
             if not module.check_mode:
                 client.group_add(name, group=module_group)
+                ipa_group = client.group_find(name=name)
+        else:
+            diff = get_group_diff(ipa_group, module_group)
+            if len(diff) > 0:
+                changed = True
+                if not module.check_mode:
+                    client.group_mod(name=name, item=module_group)
+
+        if group is not None:
+            changed = modify_if_diff(module, name, ipa_group.get('member_group', []), group, client.group_add_member,
+                                     client.group_remove_member, 'group') or changed
+
+        if user is not None:
+            changed = modify_if_diff(module, name, ipa_group.get('member_user', []), user, client.group_add_member,
+                                     client.group_remove_member, 'user') or changed
 
     else:
         if ipa_group:
@@ -187,8 +274,10 @@ def main():
             description=dict(type='str', required=False),
             external=dict(type='bool', required=False),
             gidnumber=dict(type='str', required=False, aliases=['gid']),
+            group=dict(type='list', required=False),
             nonposix=dict(type='str', required=False),
             state=dict(type='str', required=False, default='present', choices=['present', 'absent']),
+            user=dict(type='list', required=False),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
             ipa_host=dict(type='str', required=False, default='ipa.example.com'),
             ipa_port=dict(type='int', required=False, default=443),
