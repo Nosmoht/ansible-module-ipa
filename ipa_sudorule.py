@@ -132,8 +132,9 @@ sudorule:
   type: dictionary
 '''
 
-import requests
 import json
+
+import requests
 
 
 class IPAClient:
@@ -218,14 +219,32 @@ class IPAClient:
     def sudorule_add_option(self, name, item):
         return self._post_json(method='sudorule_add_option', name=name, item=item)
 
+    def sudorule_add_option_ipasudoopt(self, name, item):
+        return self.sudorule_add_option(name=name, item={'ipasudoopt': item})
+
     def sudorule_remove_option(self, name, item):
         return self._post_json(method='sudorule_remove_option', name=name, item=item)
+
+    def sudorule_remove_option_ipasudoopt(self, name, item):
+        return self.sudorule_remove_option(name=name, item={'ipasudoopt': item})
 
     def sudorule_add_host(self, name, item):
         return self._post_json(method='sudorule_add_host', name=name, item=item)
 
+    def sudorule_add_host_host(self, name, item):
+        return self.sudorule_add_host(name=name, item={'host': item})
+
+    def sudorule_add_host_hostgroup(self, name, item):
+        return self.sudorule_add_host(name=name, item={'hostgroup': item})
+
     def sudorule_remove_host(self, name, item):
         return self._post_json(method='sudorule_remove_host', name=name, item=item)
+
+    def sudorule_remove_host_host(self, name, item):
+        return self.sudorule_remove_host(name=name, item={'host': item})
+
+    def sudorule_remove_host_hostgroup(self, name, item):
+        return self.sudorule_remove_host(name=name, item={'hostgroup': item})
 
     def sudorule_add_allow_command(self, name, item):
         return self._post_json(method='sudorule_add_allow_command', name=name, item=item)
@@ -236,8 +255,20 @@ class IPAClient:
     def sudorule_add_user(self, name, item):
         return self._post_json(method='sudorule_add_user', name=name, item=item)
 
+    def sudorule_add_user_user(self, name, item):
+        return self.sudorule_add_user(name=name, item={'user': item})
+
+    def sudorule_add_user_group(self, name, item):
+        return self.sudorule_add_user(name=name, item={'group': item})
+
     def sudorule_remove_user(self, name, item):
         return self._post_json(method='sudorule_remove_user', name=name, item=item)
+
+    def sudorule_remove_user_user(self, name, item):
+        return self.sudorule_remove_user(name=name, item={'user': item})
+
+    def sudorule_remove_user_group(self, name, item):
+        return self.sudorule_remove_user(name=name, item={'group': item})
 
 
 def get_sudorule_dict(cmdcategory=None, description=None, hostcategory=None, ipaenabledflag=None, usercategory=None):
@@ -257,11 +288,8 @@ def get_sudorule_dict(cmdcategory=None, description=None, hostcategory=None, ipa
 
 def get_sudorule_diff(ipa_sudorule, module_sudorule):
     data = []
-    compareable_keys = ['cmdcategory', 'description', 'hostcategory', 'usercategory']
-    for key in compareable_keys:
+    for key in module_sudorule.keys():
         module_value = module_sudorule.get(key, None)
-        if module_value is None:
-            continue
         ipa_value = ipa_sudorule.get(key, None)
         if isinstance(ipa_value, list) and not isinstance(module_value, list):
             module_value = [module_value]
@@ -273,21 +301,21 @@ def get_sudorule_diff(ipa_sudorule, module_sudorule):
     return data
 
 
-def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_method, item):
+def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_method):
     changed = False
     diff = list(set(ipa_list) - set(module_list))
     if len(diff) > 0:
         changed = True
         if not module.check_mode:
-            for diff_item in diff:
-                remove_method(name=name, item={item: diff_item})
+            for item in diff:
+                remove_method(name=name, item=item)
 
     diff = list(set(module_list) - set(ipa_list))
     if len(diff) > 0:
         changed = True
         if not module.check_mode:
-            for diff_item in diff:
-                add_method(name=name, item={item: diff_item})
+            for item in diff:
+                add_method(name=name, item=item)
 
     return changed
 
@@ -299,7 +327,7 @@ def ensure(module, client):
     host = module.params['host']
     hostcategory = module.params['hostcategory']
     hostgroup = module.params['hostgroup']
-    ipaenabledflag = state in ['present', 'enabled']
+    ipaenabledflag = 'TRUE' if state in ['present', 'enabled'] else 'NO'
     sudoopt = module.params['sudoopt']
     user = module.params['user']
     usergroup = module.params['usergroup']
@@ -316,8 +344,7 @@ def ensure(module, client):
         if not ipa_sudorule:
             changed = True
             if not module.check_mode:
-                client.sudorule_add(name=name, item=module_sudorule)
-                ipa_sudorule = client.sudorule_find(name=name)
+                ipa_sudorule = client.sudorule_add(name=name, item=module_sudorule)
         else:
             diff = get_sudorule_diff(ipa_sudorule, module_sudorule)
             if len(diff) > 0:
@@ -325,43 +352,43 @@ def ensure(module, client):
                 if not module.check_mode:
                     if 'hostcategory' in diff:
                         if ipa_sudorule.get('memberhost_host', None) is not None:
-                            client.sudorule_remove_host(name=name,
-                                                        item={'host': ipa_sudorule.get('memberhost_host', None)})
+                            client.sudorule_remove_host_host(name=name, item=ipa_sudorule.get('memberhost_host'))
                         if ipa_sudorule.get('memberhost_hostgroup', None) is not None:
-                            client.sudorule_remove_host(name=name, item={
-                                'hostgroup': ipa_sudorule.get('memberhost_hostgroup', None)})
+                            client.sudorule_remove_host_hostgroup(name=name,
+                                                                  item=ipa_sudorule.get('memberhost_hostgroup'))
 
                     client.sudorule_mod(name=name, item=module_sudorule)
 
         if cmd is not None:
-            client.sudorule_add_allow_command(name=name, item=cmd)
+            if not module.check_mode:
+                client.sudorule_add_allow_command(name=name, item=cmd)
 
         if host is not None:
             if hostcategory is None and ipa_sudorule.get('hostcategory', None) == ['all'] and not module.check_mode:
                 client.sudorule_mod(name=name, item={'hostcategory': None})
 
             changed = modify_if_diff(module, name, ipa_sudorule.get('memberhost_host', []), host,
-                                     client.sudorule_add_host,
-                                     client.sudorule_remove_host, 'host') or changed
+                                     client.sudorule_add_host_host,
+                                     client.sudorule_remove_host_host) or changed
 
         if hostgroup is not None:
             if hostcategory is None and ipa_sudorule.get('hostcategory', None) == ['all']:
                 client.sudorule_mod(name=name, item={'hostcategory': None})
             changed = modify_if_diff(module, name, ipa_sudorule.get('memberhost_hostgroup', []), hostgroup,
-                                     client.sudorule_add_host,
-                                     client.sudorule_remove_host, 'hostgroup') or changed
+                                     client.sudorule_add_host_hostgroup,
+                                     client.sudorule_remove_host_hostgroup) or changed
         if sudoopt is not None:
             changed = modify_if_diff(module, name, ipa_sudorule.get('ipasudoopt', []), sudoopt,
-                                     client.sudorule_add_option,
-                                     client.sudorule_remove_option, 'ipasudoopt') or changed
+                                     client.sudorule_add_option_ipasudoopt,
+                                     client.sudorule_remove_option_ipasudoopt) or changed
         if user is not None:
             changed = modify_if_diff(module, name, ipa_sudorule.get('memberuser_user', []), user,
-                                     client.sudorule_add_user,
-                                     client.sudorule_remove_user, 'user') or changed
+                                     client.sudorule_add_user_user,
+                                     client.sudorule_remove_user_user) or changed
         if usergroup is not None:
             changed = modify_if_diff(module, name, ipa_sudorule.get('memberuser_group', []), usergroup,
-                                     client.sudorule_add_user,
-                                     client.sudorule_remove_user, 'group') or changed
+                                     client.sudorule_add_user_group,
+                                     client.sudorule_remove_user_group) or changed
     else:
         if ipa_sudorule:
             changed = True
