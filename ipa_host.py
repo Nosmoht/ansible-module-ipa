@@ -224,21 +224,12 @@ def get_host_dict(description=None, force=None, ip_address=None, nshostlocation=
 
 
 def get_host_diff(ipa_host, module_host):
-    compareable_keys = ['description', 'nshostlocation', 'nshardwareplatform', 'nsosversion',
-                        'usercertificate',
-                        'macaddress']
     data = []
-    for key in compareable_keys:
-        # Exclude keys that are omitted
-        if key not in module_host:
-            continue
+    for key in module_host.keys():
         ipa_value = ipa_host.get(key, None)
         module_value = module_host.get(key, None)
-        # The IPA API returns a lot of things as list even if a single value can be set. Therefore if a value
-        # returned is a list, the module parameter will also be converted to a list.
         if isinstance(ipa_value, list) and not isinstance(module_value, list):
             module_value = [module_value]
-        # If lists are compared they have to be sorted. Otherwise equal values will be interpreted as different
         if isinstance(ipa_value, list) and isinstance(module_value, list):
             ipa_value = sorted(ipa_value)
             module_value = sorted(module_value)
@@ -264,7 +255,7 @@ def ensure(module, client):
         if not ipa_host:
             changed = True
             if not module.check_mode:
-                client.host_add(name=name, host=module_host)
+                ipa_host = client.host_add(name=name, host=module_host)
 
         diff = get_host_diff(ipa_host, module_host)
         if len(diff) > 0:
