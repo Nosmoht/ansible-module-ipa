@@ -46,8 +46,6 @@ options:
 
 import json
 
-import requests
-
 
 class IPAClient:
     def __init__(self, module, host, port, username, password, protocol):
@@ -117,7 +115,7 @@ class IPAClient:
         return None
 
     def sudocmd_find(self, name):
-        return self._post_json(method='sudocmd_find', name=None, item={'all': True, 'cn': name})
+        return self._post_json(method='sudocmd_find', name=None, item={'all': True, 'sudocmd': name})
 
     def sudocmd_add(self, name, item):
         return self._post_json(method='sudocmd_add', name=name, item=item)
@@ -152,7 +150,7 @@ def get_sudocmd_diff(ipa_sudocmd, module_sudocmd):
 
 
 def ensure(module, client):
-    name = module.params['name']
+    name = module.params['sudocmd']
     state = module.params['state']
 
     module_sudocmd = get_sudocmd_dict(description=module.params['description'])
@@ -169,14 +167,14 @@ def ensure(module, client):
             if len(diff) > 0:
                 changed = True
                 if not module.check_mode:
-                    client.sudocmdgroup_mod(name=name, item={key: module_sudocmd.get(key) for key in diff})
+                    client.sudocmd_mod(name=name, item={key: module_sudocmd.get(key) for key in diff})
     else:
         if ipa_sudocmd:
             changed = True
             if not module.check_mode:
-                client.sudocmdgroup_del(name=name)
+                client.sudocmd_del(name=name)
 
-    return changed, client.sudocmdgroup_find(name=name)
+    return changed, client.sudocmd_find(name=name)
 
 
 def main():
@@ -185,7 +183,7 @@ def main():
             description=dict(type='str', required=False),
             state=dict(type='str', required=False, default='present',
                        choices=['present', 'absent', 'enabled', 'disabled']),
-            sudocmd=dict(type='list', required=False, aliases=['name']),
+            sudocmd=dict(type='str', required=True, aliases=['name']),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
             ipa_host=dict(type='str', required=False, default='ipa.example.com'),
             ipa_port=dict(type='int', required=False, default=443),
