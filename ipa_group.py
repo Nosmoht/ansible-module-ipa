@@ -244,7 +244,7 @@ def ensure(module, client):
             if len(diff) > 0:
                 changed = True
                 if not module.check_mode:
-                    client.group_mod(name=name, item=module_group)
+                    client.group_mod(name=name, item={key: module_group.get(key) for key in diff})
 
         if group is not None:
             changed = modify_if_diff(module, name, ipa_group.get('member_group', []), group, client.group_add_member,
