@@ -245,7 +245,7 @@ def user_diff(ipa_user, module_user):
         # Remove the ipasshpubkey element as it is not returned from IPA but save it's value to be used later on
         sshpubkey = module_user['ipasshpubkey']
         del module_user['ipasshpubkey']
-    for key in module_user:
+    for key in module_user.keys():
         mod_value = module_user.get(key, None)
         ipa_value = ipa_user.get(key, None)
         if isinstance(ipa_value, list) and not isinstance(mod_value, list):
@@ -291,30 +291,23 @@ def ensure(module, client):
 
     ipa_user = client.user_find(name=name)
 
-    if not ipa_user:
-        if state in ['present', 'enabled', 'disabled']:
-            if module.check_mode:
-                module.exit_json(changed=True, user=module_user)
-
-            client.user_add(name, module_user)
-
-            return True, client.user_find(name=name)
-    else:
-        if state in ['present', 'enabled', 'disabled']:
-            diff = user_diff(ipa_user, module_user)
-            if len(diff) > 0:
-                if module.check_mode:
-                    module.exit_json(changed=True, user=ipa_user)
-
+    changed = False
+    if state in ['present', 'enabled', 'disabled']:
+        if not ipa_user:
+            if not module.check_mode:
+                ipa_user = client.user_add(name, module_user)
+        diff = user_diff(ipa_user, module_user)
+        if len(diff) > 0:
+            changed = True
+            if not module.check_mode:
                 client.user_mod(name=name, user=module_user)
-                return True, client.user_find(name=name)
+    else:
         if state == 'absent':
-            if module.check_mode:
-                module.exit_json(changed=True, user=ipa_user)
+            changed = True
+            if not module.check_mode:
+                client.user_del(name)
 
-            client.user_del(name)
-            return True, None
-    return False, ipa_user
+    return changed, client.user_find(name=name)
 
 
 def main():
