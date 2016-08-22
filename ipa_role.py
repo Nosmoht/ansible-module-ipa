@@ -201,8 +201,38 @@ class IPAClient:
     def role_add_member(self, name, item):
         return self._post_json(method='role_add_member', name=name, item=item)
 
+    def role_add_group(self, name, item):
+        return self.role_add_member(name=name, item={'group': item})
+
+    def role_add_host(self, name, item):
+        return self.role_add_member(name=name, item={'host': item})
+
+    def role_add_hostgroup(self, name, item):
+        return self.role_add_member(name=name, item={'hostgroup': item})
+
+    def role_add_service(self, name, item):
+        return self.role_add_member(name=name, item={'service': item})
+
+    def role_add_user(self, name, item):
+        return self.role_add_member(name=name, item={'user': item})
+
     def role_remove_member(self, name, item):
         return self._post_json(method='role_remove_member', name=name, item=item)
+
+    def role_remove_group(self, name, item):
+        return self.role_remove_member(name=name, item={'group': item})
+
+    def role_remove_host(self, name, item):
+        return self.role_remove_member(name=name, item={'host': item})
+
+    def role_remove_hostgroup(self, name, item):
+        return self.role_remove_member(name=name, item={'hostgroup': item})
+
+    def role_remove_service(self, name, item):
+        return self.role_remove_member(name=name, item={'service': item})
+
+    def role_remove_user(self, name, item):
+        return self.role_remove_member(name=name, item={'user': item})
 
 
 def get_role_dict(description=None):
@@ -214,11 +244,8 @@ def get_role_dict(description=None):
 
 def get_role_diff(ipa_role, module_role):
     data = []
-    compareable_keys = ['description']
-    for key in compareable_keys:
+    for key in module_role.keys():
         module_value = module_role.get(key, None)
-        if module_value is None:
-            continue
         ipa_value = ipa_role.get(key, None)
         if isinstance(ipa_value, list) and not isinstance(module_value, list):
             module_value = [module_value]
@@ -230,19 +257,19 @@ def get_role_diff(ipa_role, module_role):
     return data
 
 
-def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_method, item):
+def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_method):
     changed = False
     diff = list(set(ipa_list) - set(module_list))
     if len(diff) > 0:
         changed = True
         if not module.check_mode:
-            remove_method(name=name, item={item: diff})
+            remove_method(name=name, item=diff)
 
     diff = list(set(module_list) - set(ipa_list))
     if len(diff) > 0:
         changed = True
         if not module.check_mode:
-            add_method(name=name, item={item: diff})
+            add_method(name=name, item=diff)
     return changed
 
 
@@ -263,37 +290,37 @@ def ensure(module, client):
         if not ipa_role:
             changed = True
             if not module.check_mode:
-                client.role_add(name=name, item=module_role)
+                ipa_role = client.role_add(name=name, item=module_role)
         else:
             diff = get_role_diff(ipa_role=ipa_role, module_role=module_role)
             if len(diff) > 0:
                 changed = True
                 if not module.check_mode:
-                    client.role_mod(name=name, item=module_role)
+                    client.role_mod(name=name, item={key: module_role.get(key) for key in diff})
 
         if group is not None:
-            changed = changed or modify_if_diff(module, name, ipa_role.get('member_group', []), group,
-                                                client.role_add_member,
-                                                client.role_remove_member, 'group')
+            changed = modify_if_diff(module, name, ipa_role.get('member_group', []), group,
+                                     client.role_add_group,
+                                     client.role_remove_group) or changed
 
         if host is not None:
-            changed = changed or modify_if_diff(module, name, ipa_role.get('member_host', []), host,
-                                                client.role_add_member,
-                                                client.role_remove_member, 'host')
+            changed = modify_if_diff(module, name, ipa_role.get('member_host', []), host,
+                                     client.role_add_host,
+                                     client.role_remove_host) or changed
 
         if hostgroup is not None:
-            changed = changed or modify_if_diff(module, name, ipa_role.get('member_hostgroup', []), hostgroup,
-                                                client.role_add_member,
-                                                client.role_remove_member, 'hostgroup')
+            changed = modify_if_diff(module, name, ipa_role.get('member_hostgroup', []), hostgroup,
+                                     client.role_add_hostgroup,
+                                     client.role_remove_hostgroup) or changed
 
         if service is not None:
-            changed = changed or modify_if_diff(module, name, ipa_role.get('member_service', []), service,
-                                                client.role_add_member,
-                                                client.role_remove_member, 'service')
+            changed = modify_if_diff(module, name, ipa_role.get('member_service', []), service,
+                                     client.role_add_service,
+                                     client.role_remove_service) or changed
         if user is not None:
-            changed = changed or modify_if_diff(module, name, ipa_role.get('member_user', []), user,
-                                                client.role_add_member,
-                                                client.role_remove_member, 'user')
+            changed = modify_if_diff(module, name, ipa_role.get('member_user', []), user,
+                                     client.role_add_user,
+                                     client.role_remove_user) or changed
     else:
         if ipa_role:
             changed = True
