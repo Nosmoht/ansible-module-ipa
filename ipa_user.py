@@ -282,7 +282,7 @@ def get_ssh_key_fingerprint(ssh_key):
 def ensure(module, client):
     state = module.params['state']
     name = module.params['name']
-    nsaccountlock = state == 'disabled'
+    nsaccountlock = 'TRUE' if state == 'disabled' else 'FALSE'
 
     module_user = get_user_dict(givenname=module.params.get('givenname'), loginshell=module.params['loginshell'],
                                 mail=module.params['mail'], sn=module.params['sn'],
