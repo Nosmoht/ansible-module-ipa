@@ -197,6 +197,21 @@ def get_hostgroup_dict(description=None):
     return data
 
 
+def get_hostgroup_diff(ipa_hostgroup, module_hostgroup):
+    data = []
+    for key in module_hostgroup.keys():
+        ipa_value = ipa_hostgroup.get(key, None)
+        module_value = module_hostgroup.get(key, None)
+        if isinstance(ipa_value, list) and not isinstance(module_value, list):
+            module_value = [module_value]
+        if isinstance(ipa_value, list) and isinstance(module_value, list):
+            ipa_value = sorted(ipa_value)
+            module_value = sorted(module_value)
+        if ipa_value != module_value:
+            data.append(key)
+    return data
+
+
 def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_method):
     changed = False
     diff = list(set(ipa_list) - set(module_list))
@@ -227,8 +242,13 @@ def ensure(module, client):
         if not ipa_hostgroup:
             changed = True
             if not module.check_mode:
-                client.hostgroup_add(name=name, item=module_hostgroup)
-                ipa_hostgroup = client.hostgroup_find(name=name)
+                ipa_hostgroup = client.hostgroup_add(name=name, item=module_hostgroup)
+        else:
+            diff = get_hostgroup_diff(ipa_hostgroup, module_hostgroup)
+            if len(diff) > 0:
+                changed = True
+                if not module.check_mode:
+                    client.hostgroup_mod(name=name, item={key: module_hostgroup.get(key) for key in diff})
 
         if host is not None:
             changed = modify_if_diff(module, name, ipa_hostgroup.get('member_host', []), host,
