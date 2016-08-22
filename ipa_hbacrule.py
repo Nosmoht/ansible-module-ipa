@@ -276,11 +276,8 @@ def get_hbacrule_dict(description=None, hostcategory=None, ipaenabledflag=None, 
 
 def get_hbcarule_diff(ipa_hbcarule, module_hbcarule):
     data = []
-    compareable_keys = ['description', 'hostcategory', 'servicecategory', 'sourcehostcategory', 'usercategory']
-    for key in compareable_keys:
+    for key in module_hbcarule.keys():
         module_value = module_hbcarule.get(key, None)
-        if module_value is None:
-            continue
         ipa_value = ipa_hbcarule.get(key, None)
         if isinstance(ipa_value, list) and not isinstance(module_value, list):
             module_value = [module_value]
@@ -300,7 +297,6 @@ def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_metho
         if not module.check_mode:
             remove_method(name=name, item={item: diff})
 
-    # Hosts that a not port of the group but should must be added
     diff = list(set(module_list) - set(ipa_list))
     if len(diff) > 0:
         changed = True
@@ -340,14 +336,13 @@ def ensure(module, client):
         if not ipa_hbacrule:
             changed = True
             if not module.check_mode:
-                client.hbacrule_add(name=name, item=module_hbacrule)
-                ipa_hbacrule = client.hbacrule_find(name=name)
+                ipa_hbacrule = client.hbacrule_add(name=name, item=module_hbacrule)
         else:
             diff = get_hbcarule_diff(ipa_hbacrule, module_hbacrule)
             if len(diff) > 0:
                 changed = True
                 if not module.check_mode:
-                    client.hbcarule_mod(name=name, item=module_hbacrule)
+                    client.hbcarule_mod(name=name, item={key: module_hbacrule.get(key) for key in diff})
 
         if host is not None:
             changed = modify_if_diff(module, name, ipa_hbacrule.get('memberhost_host', []), host,
