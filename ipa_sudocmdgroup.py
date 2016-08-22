@@ -207,7 +207,7 @@ def ensure(module, client):
                     client.sudocmdgroup_mod(name=name, item={key: module_sudocmdgroup.get(key) for key in diff})
 
         if sudocmd is not None:
-            changed = modify_if_diff(module, name, ipa_sudocmdgroup.get('member_sudocmd'), sudocmd,
+            changed = modify_if_diff(module, name, ipa_sudocmdgroup.get('member_sudocmd', []), sudocmd,
                                      client.sudocmdgroup_add_member_sudocmd,
                                      client.sudocmdgroup_remove_member_sudocmd)
     else:
