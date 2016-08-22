@@ -193,11 +193,8 @@ def get_group_dict(description=None, external=None, gid=None, nonposix=None):
 
 def get_group_diff(ipa_group, module_group):
     data = []
-    compareable_keys = ['description', 'external', 'gidnumber', 'nonposix']
-    for key in compareable_keys:
+    for key in module_group.keys():
         module_value = module_group.get(key, None)
-        if module_value is None:
-            continue
         ipa_value = ipa_group.get(key, None)
         if isinstance(ipa_value, list) and not isinstance(module_value, list):
             module_value = [module_value]
