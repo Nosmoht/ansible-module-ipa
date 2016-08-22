@@ -174,8 +174,20 @@ class IPAClient:
     def group_add_member(self, name, item):
         return self._post_json(method='group_add_member', name=name, item=item)
 
+    def group_add_member_group(self, name, item):
+        return self.group_add_member(name=name, item={'group': item})
+
+    def group_add_member_user(self, name, item):
+        return self.group_add_member(name=name, item={'user': item})
+
     def group_remove_member(self, name, item):
         return self._post_json(method='group_remove_member', name=name, item=item)
+
+    def group_remove_member_group(self, name, item):
+        return self.group_remove_member(name=name, item={'group': item})
+
+    def group_remove_member_user(self, name, item):
+        return self.group_remove_member(name=name, item={'user': item})
 
 
 def get_group_dict(description=None, external=None, gid=None, nonposix=None):
@@ -206,19 +218,19 @@ def get_group_diff(ipa_group, module_group):
     return data
 
 
-def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_method, item):
+def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_method):
     changed = False
     diff = list(set(ipa_list) - set(module_list))
     if len(diff) > 0:
         changed = True
         if not module.check_mode:
-            remove_method(name=name, item={item: diff})
+            remove_method(name=name, item=diff)
 
     diff = list(set(module_list) - set(ipa_list))
     if len(diff) > 0:
         changed = True
         if not module.check_mode:
-            add_method(name=name, item={item: diff})
+            add_method(name=name, item=diff)
 
     return changed
 
@@ -247,12 +259,14 @@ def ensure(module, client):
                     client.group_mod(name=name, item={key: module_group.get(key) for key in diff})
 
         if group is not None:
-            changed = modify_if_diff(module, name, ipa_group.get('member_group', []), group, client.group_add_member,
-                                     client.group_remove_member, 'group') or changed
+            changed = modify_if_diff(module, name, ipa_group.get('member_group', []), group,
+                                     client.group_add_member_group,
+                                     client.group_remove_member_group) or changed
 
         if user is not None:
-            changed = modify_if_diff(module, name, ipa_group.get('member_user', []), user, client.group_add_member,
-                                     client.group_remove_member, 'user') or changed
+            changed = modify_if_diff(module, name, ipa_group.get('member_user', []), user,
+                                     client.group_add_member_user,
+                                     client.group_remove_member_user) or changed
 
     else:
         if ipa_group:
