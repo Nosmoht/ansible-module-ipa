@@ -241,8 +241,7 @@ def ensure(module, client):
         if not ipa_group:
             changed = True
             if not module.check_mode:
-                client.group_add(name, group=module_group)
-                ipa_group = client.group_find(name=name)
+                ipa_group = client.group_add(name, group=module_group)
         else:
             diff = get_group_diff(ipa_group, module_group)
             if len(diff) > 0:
