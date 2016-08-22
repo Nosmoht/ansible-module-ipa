@@ -46,6 +46,8 @@ options:
 
 import json
 
+import requests
+
 
 class IPAClient:
     def __init__(self, module, host, port, username, password, protocol):
