@@ -27,6 +27,7 @@ options:
   hostcategory:
     description: Host category
     required: false
+    choices: ['all']
   hostgroup:
     description:
     - List of hostgroup names to assign.
@@ -39,6 +40,8 @@ options:
     - If option is omitted services will not be checked or changed.
   servicecategory:
     description: Service category
+    required: false
+    choices: ['all']
   servicegroup:
     description:
     - List of service group names to assign.
@@ -51,6 +54,8 @@ options:
     - If option is omitted source hosts will not be checked or changed.
   sourcehostcategory:
     description: Source host category
+    required: false
+    choices: ['all']
   sourcehostgroup:
     description:
     - List of source host group names to assign.
@@ -68,6 +73,8 @@ options:
     - If option is omitted users will not be checked or changed.
   usercategory:
     description: User category
+    required: false
+    choices: ['all']
   usergroup:
     description:
     - List of user group names to assign.
@@ -397,18 +404,18 @@ def main():
             cn=dict(type='str', required=True, aliases=['name']),
             description=dict(type='str', required=False),
             host=dict(type='list', required=False),
-            hostcategory=dict(type='str', required=False),
+            hostcategory=dict(type='str', required=False, choices=['all']),
             hostgroup=dict(type='list', required=False),
             service=dict(type='list', required=False),
-            servicecategory=dict(type='str', required=False),
+            servicecategory=dict(type='str', required=False, choices=['all']),
             servicegroup=dict(type='list', required=False),
             sourcehost=dict(type='list', required=False),
-            sourcehostcategory=dict(type='str', required=False),
+            sourcehostcategory=dict(type='str', required=False, choices=['all']),
             sourcehostgroup=dict(type='list', required=False),
             state=dict(type='str', required=False, default='present',
                        choices=['present', 'absent', 'enabled', 'disabled']),
             user=dict(type='list', required=False),
-            usercategory=dict(type='str', required=False),
+            usercategory=dict(type='str', required=False, choices=['all']),
             usergroup=dict(type='list', required=False),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
             ipa_host=dict(type='str', required=False, default='ipa.example.com'),
