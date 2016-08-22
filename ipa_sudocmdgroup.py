@@ -233,7 +233,6 @@ def main():
             ipa_user=dict(type='str', required=False, default='admin'),
             ipa_pass=dict(type='str', required=True, no_log=True),
         ),
-        mutually_exclusive=[['hostcategory', 'host'], ['hostcategory', 'hostgroup']],
         supports_check_mode=True,
     )
 
