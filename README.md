@@ -8,6 +8,8 @@ Ansible IPA modules
  - [Host](#host)
  - [Hostgroup](#hostgroup)
  - [Role](#role)
+ - [Sudo command](#sudo_command)
+ - [Sudo command group](#sudo_command_group)
  - [Sudo rule](#sudo_rule)
  - [User](#user)
 - [License](#license)
@@ -173,6 +175,51 @@ Ensure group is absent
 - name: Ensure role is absent
   ipa_role:
     name: Oracle Database Administrator
+    state: absent
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+## Sudo command
+```yaml
+- name: Ensure sudo command exists
+  ipa_sudocmd:
+    name: date
+    description: Date command
+    state: present
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+```yaml
+- name: Ensure sudo command does not exist
+  ipa_sudocmd:
+    name: date
+    state: absent
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+## Sudo command group
+```yaml
+- name: Ensure sudo command group exists
+  ipa_sudocmdgroup:
+    name: cmd-group-01
+    description: Command group 01
+    sudocmd:
+    - date
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+```
+
+```yaml
+- name: Ensure sudo command group does not exist
+  ipa_sudocmdgroup:
+    name: cmd-group-01
     state: absent
     ipa_host: ipa.example.com
     ipa_user: admin
