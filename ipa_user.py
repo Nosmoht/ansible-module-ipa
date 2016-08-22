@@ -296,11 +296,12 @@ def ensure(module, client):
         if not ipa_user:
             if not module.check_mode:
                 ipa_user = client.user_add(name, module_user)
-        diff = user_diff(ipa_user, module_user)
-        if len(diff) > 0:
-            changed = True
-            if not module.check_mode:
-                client.user_mod(name=name, user=module_user)
+        else:
+            diff = user_diff(ipa_user, module_user)
+            if len(diff) > 0:
+                changed = True
+                if not module.check_mode:
+                    client.user_mod(name=name, user=module_user)
     else:
         if state == 'absent':
             changed = True
