@@ -162,11 +162,11 @@ class IPAClient:
     def group_find(self, name):
         return self._post_json(method='group_find', name=None, item={'all': True, 'cn': name})
 
-    def group_add(self, name, group):
-        return self._post_json(method='group_add', name=name, item=group)
+    def group_add(self, name, item):
+        return self._post_json(method='group_add', name=name, item=item)
 
-    def group_mod(self, name, group):
-        return self._post_json(method='group_mod', name=name, item=group)
+    def group_mod(self, name, item):
+        return self._post_json(method='group_mod', name=name, item=item)
 
     def group_del(self, name):
         return self._post_json(method='group_del', name=name)
@@ -250,7 +250,7 @@ def ensure(module, client):
         if not ipa_group:
             changed = True
             if not module.check_mode:
-                ipa_group = client.group_add(name, group=module_group)
+                ipa_group = client.group_add(name, item=module_group)
         else:
             diff = get_group_diff(ipa_group, module_group)
             if len(diff) > 0:
