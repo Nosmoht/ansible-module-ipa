@@ -184,11 +184,11 @@ class IPAClient:
     def user_find(self, name):
         return self._post_json(method='user_find', name=None, item={'all': True, 'uid': name})
 
-    def user_add(self, name, user):
-        return self._post_json(method='user_add', name=name, item=user)
+    def user_add(self, name, item):
+        return self._post_json(method='user_add', name=name, item=item)
 
-    def user_mod(self, name, user):
-        return self._post_json(method='user_mod', name=name, item=user)
+    def user_mod(self, name, item):
+        return self._post_json(method='user_mod', name=name, item=item)
 
     def user_del(self, name):
         return self._post_json(method='user_del', name=name)
@@ -223,7 +223,7 @@ def get_user_dict(givenname=None, loginshell=None, mail=None, nsaccountlock=Fals
     return user
 
 
-def user_diff(ipa_user, module_user):
+def get_user_diff(ipa_user, module_user):
     """
         Return the keys of each dict whereas values are different. Unfortunately the IPA
         API returns everything as a list even if only a single value is possible.
@@ -294,14 +294,15 @@ def ensure(module, client):
     changed = False
     if state in ['present', 'enabled', 'disabled']:
         if not ipa_user:
+            changed = True
             if not module.check_mode:
-                ipa_user = client.user_add(name, module_user)
+                ipa_user = client.user_add(name=name, item=module_user)
         else:
-            diff = user_diff(ipa_user, module_user)
+            diff = get_user_diff(ipa_user, module_user)
             if len(diff) > 0:
                 changed = True
                 if not module.check_mode:
-                    client.user_mod(name=name, user=module_user)
+                    client.user_mod(name=name, item=module_user)
     else:
         if state == 'absent':
             changed = True
@@ -343,7 +344,7 @@ def main():
                        protocol=module.params['ipa_prot'])
 
     # If sshpubkey is defined as None than module.params['sshpubkey'] is [None]. IPA itself returns None (not a list).
-    # Therefore a small check here to replace list(None) by None. Otherwise the user_diff method would return sshpubkey
+    # Therefore a small check here to replace list(None) by None. Otherwise get_user_diff() would return sshpubkey
     # as different which should be avoided.
     if module.params['sshpubkey'] is not None:
         if len(module.params['sshpubkey']) == 1 and module.params['sshpubkey'][0] is "":
