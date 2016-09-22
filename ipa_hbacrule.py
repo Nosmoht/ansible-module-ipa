@@ -342,7 +342,7 @@ def ensure(module, client):
             if len(diff) > 0:
                 changed = True
                 if not module.check_mode:
-                    client.hbcarule_mod(name=name, item={key: module_hbacrule.get(key) for key in diff})
+                    client.hbacrule_mod(name=name, item={key: module_hbacrule.get(key) for key in diff})
 
         if host is not None:
             changed = modify_if_diff(module, name, ipa_hbacrule.get('memberhost_host', []), host,
