@@ -217,7 +217,7 @@ def get_host_dict(description=None, force=None, ip_address=None, nshostlocation=
     if nsosversion is not None:
         data['nsosversion'] = nsosversion
     if usercertificate is not None:
-        data['usercertificate'] = usercertificate
+        data['usercertificate'] = [{"__base64__": item} for item in usercertificate]
     if macaddress is not None:
         data['macaddress'] = macaddress
     return data
