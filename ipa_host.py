@@ -260,12 +260,12 @@ def ensure(module, client):
             changed = True
             if not module.check_mode:
                 ipa_host = client.host_add(name=name, host=module_host)
-
-        diff = get_host_diff(ipa_host, module_host)
-        if len(diff) > 0:
-            changed = True
-            if not module.check_mode:
-                client.host_mod(name=name, host={key: module_host.get(key) for key in diff})
+        else:
+            diff = get_host_diff(ipa_host, module_host)
+            if len(diff) > 0:
+                changed = True
+                if not module.check_mode:
+                    ipa_host = client.host_mod(name=name, host={key: module_host.get(key) for key in diff})
 
     else:
         if ipa_host:
@@ -273,7 +273,7 @@ def ensure(module, client):
             if not module.check_mode:
                 client.host_del(name=name)
 
-    return changed, client.host_find(name=name)
+    return changed, ipa_host
 
 
 def main():
