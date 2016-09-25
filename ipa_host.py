@@ -224,7 +224,11 @@ def get_host_dict(description=None, force=None, ip_address=None, nshostlocation=
 
 
 def get_host_diff(ipa_host, module_host):
+    non_updateable_keys = ['force', 'ip_address']
     data = []
+    for key in non_updateable_keys:
+        if key in module_host:
+            del module_host[key]
     for key in module_host.keys():
         ipa_value = ipa_host.get(key, None)
         module_value = module_host.get(key, None)
