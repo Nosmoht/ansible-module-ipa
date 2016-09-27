@@ -304,7 +304,7 @@ def ensure(module, client):
                 if not module.check_mode:
                     client.user_mod(name=name, item=module_user)
     else:
-        if state == 'absent':
+        if ipa_user:
             changed = True
             if not module.check_mode:
                 client.user_del(name)
