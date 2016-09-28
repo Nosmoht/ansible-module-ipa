@@ -302,14 +302,14 @@ def ensure(module, client):
             if len(diff) > 0:
                 changed = True
                 if not module.check_mode:
-                    client.user_mod(name=name, item=module_user)
+                    ipa_user = client.user_mod(name=name, item=module_user)
     else:
         if ipa_user:
             changed = True
             if not module.check_mode:
                 client.user_del(name)
 
-    return changed, client.user_find(name=name)
+    return changed, ipa_user
 
 
 def main():
