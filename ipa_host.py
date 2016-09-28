@@ -200,9 +200,7 @@ class IPAClient:
 
 
 def get_host_dict(description=None, force=None, ip_address=None, nshostlocation=None, nshardwareplatform=None,
-                  nsosversion=None,
-                  usercertificate=None,
-                  macaddress=None):
+                  nsosversion=None, usercertificate=None, macaddress=None):
     data = {}
     if description is not None:
         data['description'] = description
