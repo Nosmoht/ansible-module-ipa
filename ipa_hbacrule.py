@@ -309,7 +309,7 @@ def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_metho
 def ensure(module, client):
     name = module.params['name']
     state = module.params['state']
-    ipaenabledflag = state in ['present', 'enabled']
+    ipaenabledflag = 'TRUE' if state in ['present', 'enabled'] else 'NO'
     host = module.params['host']
     hostcategory = module.params['hostcategory']
     hostgroup = module.params['hostgroup']
