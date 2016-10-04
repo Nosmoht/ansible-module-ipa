@@ -4,7 +4,7 @@
 DOCUMENTATION = '''
 ---
 module: ipa_host
-short_description: Manager IPA host
+short_description: Manage FreeIPA host
 description:
 - Add, modify and delete an IPA host using IPA API
 options:
@@ -15,33 +15,47 @@ options:
     required: true
     aliases: ["name"]
   description:
-    description: A description of this host
+    description:
+    - A description of this host.
     required: false
   force:
-    description: Force host name even if not in DNS
+    description:
+    - Force host name even if not in DNS.
     required: false
   ip_address:
-    description: Add the host to DNS with this IP address
-    required: false
-  nshostlocation:
-    description: Host location (e.g. "Lab 2")
-    required: false
-  nshardwareplatform:
-    description: Host hardware platform (e.g. "Lenovo T61")
-    required: false
-  nsosversion:
-    description: Host operating system and version (e.g. "Fedora 9")
-    required: false
-  usercertificate:
-    description: Base-64 encoded server certificate
+    description:
+    - Add the host to DNS with this IP address.
     required: false
   macddress:
-    description: Hardware MAC address(es) on this host
+    description:
+    - List of Hardware MAC address(es) off this host.
+    - If option is omitted MAC addresses will not be checked or changed.
+    - If an empty list is passed all assigned MAC addresses will be removed.
+    - MAC addresses that are already assigned but not passed will be removed.
+    required: false
+  nshostlocation:
+    description:
+    - Host location (e.g. "Lab 2")
+    required: false
+  nshardwareplatform:
+    description:
+    - Host hardware platform (e.g. "Lenovo T61")
+    required: false
+  nsosversion:
+    description:
+    - Host operating system and version (e.g. "Fedora 9")
+    required: false
+  usercertificate:
+    description:
+    - List of Base-64 encoded server certificates.
+    - If option is ommitted certificates will not be checked or changed.
+    - If an emtpy list is passed all assigned certificates will be removed.
+    - Certificates already assigned but not passed will be removed.
     required: false
   state:
     description: State to ensure
     required: false
-    default: "present"
+    default: present
     choices: ["present", "absent", "disabled"]
   ipa_port:
     description: Port of IPA server
@@ -50,26 +64,28 @@ options:
   ipa_host:
     description: IP or hostname of IPA server
     required: false
-    default: "ipa.example.com"
+    default: ipa.example.com
   ipa_user:
     description: Administrative account used on IPA server
     required: false
-    default: "admin"
+    default: admin
   ipa_pass:
     description: Password of administrative user
     required: true
   ipa_prot:
     description: Protocol used by IPA server
     required: false
-    default: "https"
+    default: https
     choices: ["http", "https"]
+version_added: "2.2"
 requirements:
-- Python requests
+- json
+- requests
 '''
 
 EXAMPLES = '''
-- name: ensure host is present
-  ipa_host:
+# Ensure host is present
+- ipa_host:
     name: host01.example.com
     description: Example host
     ip_address: 192.168.0.123
@@ -84,16 +100,24 @@ EXAMPLES = '''
     ipa_user: admin
     ipa_pass: topsecret
 
-- name: ensure host is disabled
-  ipa_host:
+# Ensure host is disabled
+- ipa_host:
     name: host01.example.com
     state: disabled
     ipa_host: ipa.example.com
     ipa_user: admin
     ipa_pass: topsecret
 
-- name: ensure host is absent
-  ipa_host:
+# Ensure that all usercertificates are removed
+- ipa_host:
+    name: host01.example.com
+    usercertificate: []
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+
+# Ensure host is absent
+- ipa_host:
     name: host01.example.com
     state: absent
     ipa_host: ipa.example.com
@@ -103,9 +127,9 @@ EXAMPLES = '''
 
 RETURN = '''
 host:
-  description: JSON data of the host as returned by IPA
-  returned: if found
-  type: string
+  description: Host as returned by IPA API.
+  returned: always
+  type: dict
 host_diff:
   description: List of options that differ and would be changed
   returned: if check mode and a difference is found
