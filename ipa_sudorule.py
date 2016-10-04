@@ -379,16 +379,13 @@ def ensure(module, client):
                 client.sudorule_add_allow_command(name=name, item=cmd)
 
         if host is not None:
-            if hostcategory is None and ipa_sudorule.get('hostcategory', None) == ['all'] and not module.check_mode:
-                client.sudorule_mod(name=name, item={'hostcategory': None})
-
+            changed = category_changed(module, client, 'hostcategory', ipa_sudorule) or changed
             changed = modify_if_diff(module, name, ipa_sudorule.get('memberhost_host', []), host,
                                      client.sudorule_add_host_host,
                                      client.sudorule_remove_host_host) or changed
 
         if hostgroup is not None:
-            if hostcategory is None and ipa_sudorule.get('hostcategory', None) == ['all']:
-                client.sudorule_mod(name=name, item={'hostcategory': None})
+            changed = category_changed(module, client, 'hostcategory', ipa_sudorule) or changed
             changed = modify_if_diff(module, name, ipa_sudorule.get('memberhost_hostgroup', []), hostgroup,
                                      client.sudorule_add_host_hostgroup,
                                      client.sudorule_remove_host_hostgroup) or changed
