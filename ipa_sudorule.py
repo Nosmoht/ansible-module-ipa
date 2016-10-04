@@ -343,13 +343,14 @@ def ensure(module, client):
     ipaenabledflag = 'TRUE' if state in ['present', 'enabled'] else 'NO'
     sudoopt = module.params['sudoopt']
     user = module.params['user']
+    usercategory = module.params['usercategory']
     usergroup = module.params['usergroup']
 
     module_sudorule = get_sudorule_dict(cmdcategory=cmdcategory,
                                         description=module.params['description'],
                                         hostcategory=hostcategory,
                                         ipaenabledflag=ipaenabledflag,
-                                        usercategory=module.params['usercategory'])
+                                        usercategory=usercategory)
     ipa_sudorule = client.sudorule_find(name=name)
 
     changed = False
@@ -396,10 +397,12 @@ def ensure(module, client):
                                      client.sudorule_add_option_ipasudoopt,
                                      client.sudorule_remove_option_ipasudoopt) or changed
         if user is not None:
+            changed = category_changed(module, client, 'usercategory', ipa_sudorule) or changed
             changed = modify_if_diff(module, name, ipa_sudorule.get('memberuser_user', []), user,
                                      client.sudorule_add_user_user,
                                      client.sudorule_remove_user_user) or changed
         if usergroup is not None:
+            changed = category_changed(module, client, 'usercategory', ipa_sudorule) or changed
             changed = modify_if_diff(module, name, ipa_sudorule.get('memberuser_group', []), usergroup,
                                      client.sudorule_add_user_group,
                                      client.sudorule_remove_user_group) or changed
