@@ -4,7 +4,7 @@
 DOCUMENTATION = '''
 ---
 module: ipa_user
-short_description: Manager IPA users
+short_description: Manage FreeIPA users
 description:
 - Add, modify and delete user within IPA server
 options:
@@ -73,6 +73,12 @@ options:
     required: false
     default: "https"
     choices: ["http", "https"]
+version_added: "2.2"
+requirements:
+- base64
+- hashlib
+- json
+- requests
 '''
 
 EXAMPLES = '''
@@ -104,9 +110,9 @@ EXAMPLES = '''
 
 RETURN = '''
 user:
-  description: JSON data of user as returned by IPA
-  returned: if found
-  type: string
+  description: User as returned by IPA API
+  returned: always
+  type: dict
 '''
 
 import base64
