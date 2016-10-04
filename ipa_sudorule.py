@@ -5,7 +5,7 @@ DOCUMENTATION = '''
 ---
 module: ipa_sudorule
 author: Thomas Krahn (@Nosmoht)
-short_description: Manager IPA sudo rule
+short_description: Manage FreeIPA sudo rule
 description:
 - Add, modify or delete sudo rule within IPA server using IPA API.
 options:
@@ -89,6 +89,10 @@ options:
     required: false
     default: "https"
     choices: ["http", "https"]
+version_added: "2.2"
+requirements:
+- json
+- requests
 '''
 
 EXAMPLES = '''
@@ -128,8 +132,8 @@ EXAMPLES = '''
 RETURN = '''
 sudorule:
   description: Sudorule as returned by IPA
-  returned: if found
-  type: dictionary
+  returned: always
+  type: dict
 '''
 
 import json
