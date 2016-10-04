@@ -5,7 +5,7 @@ DOCUMENTATION = '''
 ---
 module: ipa_sudocmd
 author: Thomas Krahn (@Nosmoht)
-short_description: Manager IPA sudo command
+short_description: Manage FreeIPA sudo command
 description:
 - Add, modify or delete sudo command within IPA server using IPA API.
 options:
@@ -42,6 +42,35 @@ options:
     required: false
     default: "https"
     choices: ["http", "https"]
+version_added: "2.2"
+requirements:
+- json
+- requests
+'''
+
+EXAMPLES = '''
+- name: Ensure sudo command exists
+  ipa_sudocmd:
+    name: su
+    description: Allow to run su via sudo
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+
+- name: Ensure sudo command does not exist
+  ipa_sudocmd:
+    name: su
+    state: absent
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+'''
+
+RETURN = '''
+sudocmd:
+  description: Sudo command as return from IPA API
+  returned: always
+  type: dict
 '''
 
 import json
