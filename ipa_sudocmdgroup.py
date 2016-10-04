@@ -5,7 +5,7 @@ DOCUMENTATION = '''
 ---
 module: ipa_sudocmdgroup
 author: Thomas Krahn (@Nosmoht)
-short_description: Manager IPA sudo command group
+short_description: Manage FreeIPA sudo command group
 description:
 - Add, modify or delete sudo command group within IPA server using IPA API.
 options:
@@ -48,6 +48,37 @@ options:
     required: false
     default: "https"
     choices: ["http", "https"]
+version_added: "2.2"
+requirements:
+- json
+- requests
+'''
+
+EXAMPLES = '''
+- name: Ensure sudo command group exists
+  ipa_sudocmdgroup:
+    name: group01
+    description: Group of important commands
+    sudocmd:
+    - su
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+
+- name: Ensure sudo command group does not exists
+  ipa_sudocmdgroup:
+    name: group01
+    state: absent
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+'''
+
+RETURN = '''
+sudocmdgroup:
+  description: Sudo command group as returned by IPA API
+  returned: always
+  type: dict
 '''
 
 import json
