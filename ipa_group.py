@@ -5,7 +5,7 @@ DOCUMENTATION = '''
 ---
 module: ipa_group
 author: Thomas Krahn (@Nosmoht)
-short_description: Manager IPA group
+short_description: Manage FreeIPA group
 description:
 - Add, modify and delete group within IPA server
 options:
@@ -17,26 +17,31 @@ options:
     aliases: ['name']
   external:
     description:
+    - Allow adding external non-IPA members from trusted domains.
     required: false
   gidnumber:
     description:
-    - GID
+    - GID (use this option to set it manually).
     required: false
   group:
     description:
     - List of group names assigned to this group.
     - If an empty list is passed all groups will be removed from this group.
     - If option is omitted assigned groups will not be checked or changed.
+    - Groups that are already assigned but not passed will be removed.
   nonposix:
     description:
+    - Create as a non-POSIX group.
     required: false
   user:
     description:
     - List of user names assigned to this group.
     - If an empty list is passed all users will be removed from this group.
     - If option is omitted assigned users will not be checked or changed.
+    - Users that are already assigned but not passed will be removed.
   state:
-    description: State to ensure
+    description:
+    - State to ensure
     required: false
     default: "present"
   ipa_port:
@@ -59,6 +64,10 @@ options:
     required: false
     default: "https"
     choices: ["http", "https"]
+version_added: "2.2"
+requirements:
+- json
+- requests
 '''
 
 EXAMPLES = '''
@@ -71,9 +80,29 @@ EXAMPLES = '''
     ipa_user: admin
     ipa_pass: topsecret
 
-# Ensure brain is absent
+# Ensure that groups sysops and appops are assigned to ops but no other group
 - ipa_group:
-    name: oinstall
+    name: ops
+    group:
+    - sysops
+    - appops
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+
+# Ensure that users linus and larry are assign to the group, but no other user
+- ipa_group:
+    name: sysops
+    user:
+    - linus
+    - larry
+    ipa_host: ipa.example.com
+    ipa_user: admin
+    ipa_pass: topsecret
+
+# Ensure group is absent
+- ipa_group:
+    name: sysops
     state: absent
     ipa_host: ipa.example.com
     ipa_user: admin
@@ -82,9 +111,9 @@ EXAMPLES = '''
 
 RETURN = '''
 group:
-  description: JSON data of group as returned by IPA
-  returned: if found
-  type: dictionary
+  description: Group as returned by IPA API
+  returned: always
+  type: dict
 '''
 
 import json
