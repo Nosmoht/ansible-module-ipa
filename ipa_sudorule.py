@@ -324,10 +324,19 @@ def modify_if_diff(module, name, ipa_list, module_list, add_method, remove_metho
     return changed
 
 
+def category_changed(module, client, category_name, ipa_sudorule):
+    if ipa_sudorule.get(category_name, None) == ['all']:
+        if not module.check_mode:
+            client.sudorule_mod(name=ipa_sudorule.get('cn'), item={category_name: None})
+        return True
+    return False
+
+
 def ensure(module, client):
     state = module.params['state']
     name = module.params['name']
     cmd = module.params['cmd']
+    cmdcategory = module.params['cmdcategory']
     host = module.params['host']
     hostcategory = module.params['hostcategory']
     hostgroup = module.params['hostgroup']
@@ -336,7 +345,7 @@ def ensure(module, client):
     user = module.params['user']
     usergroup = module.params['usergroup']
 
-    module_sudorule = get_sudorule_dict(cmdcategory=module.params['cmdcategory'],
+    module_sudorule = get_sudorule_dict(cmdcategory=cmdcategory,
                                         description=module.params['description'],
                                         hostcategory=hostcategory,
                                         ipaenabledflag=ipaenabledflag,
@@ -364,6 +373,7 @@ def ensure(module, client):
                     client.sudorule_mod(name=name, item=module_sudorule)
 
         if cmd is not None:
+            changed = category_changed(module, client, 'cmdcategory', ipa_sudorule) or changed
             if not module.check_mode:
                 client.sudorule_add_allow_command(name=name, item=cmd)
 
@@ -424,7 +434,11 @@ def main():
             ipa_user=dict(type='str', required=False, default='admin'),
             ipa_pass=dict(type='str', required=True, no_log=True),
         ),
-        mutually_exclusive=[['hostcategory', 'host'], ['hostcategory', 'hostgroup']],
+        mutually_exclusive=[['cmdcategory', 'cmd'],
+                            ['hostcategory', 'host'],
+                            ['hostcategory', 'hostgroup'],
+                            ['usercategory', 'user'],
+                            ['usercategory', 'usergroup']],
         supports_check_mode=True,
     )
 
