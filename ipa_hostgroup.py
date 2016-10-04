@@ -4,7 +4,7 @@
 DOCUMENTATION = '''
 ---
 module: ipa_hostgroup
-short_description: Manager IPA host-group
+short_description: Manage FreeIPA host-group
 description:
 - Add, modify and delete an IPA host-group using IPA API
 options:
@@ -54,8 +54,10 @@ options:
     required: false
     default: "https"
     choices: ["http", "https"]
+version_added: "2.2"
 requirements:
-- Python requests
+- json
+- requests
 '''
 
 EXAMPLES = '''
@@ -83,9 +85,9 @@ EXAMPLES = '''
 
 RETURN = '''
 hostgroup:
-  description: JSON data of host-group as returned by IPA
-  returned: if found
-  type: dictionary
+  description: Hostgroup as returned by IPA API.
+  returned: always
+  type: dict
 '''
 
 import json
