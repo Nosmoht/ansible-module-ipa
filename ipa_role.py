@@ -4,7 +4,7 @@
 DOCUMENTATION = '''
 ---
 module: ipa_role
-short_description: Manager IPA role
+short_description: Manage FreeIPA role
 description:
 - Add, modify and delete a role within IPA server using IPA API
 options:
@@ -69,6 +69,10 @@ options:
     required: false
     default: "https"
     choices: ["http", "https"]
+version_added: "2.2"
+requirements:
+- json
+- requests
 '''
 
 EXAMPLES = '''
@@ -108,9 +112,9 @@ EXAMPLES = '''
 
 RETURN = '''
 role:
-  description: JSON data of role as returned by IPA
-  returned: if found
-  type: string
+  description: Role as returned by IPA API.
+  returned: always
+  type: dict
 '''
 
 import json
