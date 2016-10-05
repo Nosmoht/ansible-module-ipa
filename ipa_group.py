@@ -236,6 +236,13 @@ def get_group_dict(description=None, external=None, gid=None, nonposix=None):
 
 def get_group_diff(ipa_group, module_group):
     data = []
+    # With group_add attribute nonposix is passed, whereas with group_mod only posix can be passed.
+    if 'nonposix' in module_group:
+        # Only non-posix groups can be changed to posix
+        if not module_group['nonposix'] and ipa_group.get('nonposix'):
+            module_group['posix'] = True
+        del module_group['nonposix']
+
     for key in module_group.keys():
         module_value = module_group.get(key, None)
         ipa_value = ipa_group.get(key, None)
