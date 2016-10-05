@@ -316,7 +316,7 @@ def main():
             external=dict(type='bool', required=False),
             gidnumber=dict(type='str', required=False, aliases=['gid']),
             group=dict(type='list', required=False),
-            nonposix=dict(type='str', required=False),
+            nonposix=dict(type='bool', required=False),
             state=dict(type='str', required=False, default='present', choices=['present', 'absent']),
             user=dict(type='list', required=False),
             ipa_prot=dict(type='str', required=False, default='https', choices=['http', 'https']),
