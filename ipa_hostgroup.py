@@ -15,22 +15,26 @@ options:
     required: true
     aliases: ["name"]
   description:
-    description: Description
+    description:
+    - Description
     required: false
   host:
     description:
     - List of hosts that belong to the host-group.
     - If an empty list is passed all hosts will be removed from the group.
     - If option is omitted hosts will not be checked or changed.
+    - If option is passed all assigned hosts that are not passed will be unassigned from the group.
     required: false
   hostgroup:
     description:
     - List of host-groups than belong to that host-group.
     - If an empty list is passed all host-groups will be removed from the group.
     - If option is omitted host-groups will not be checked or changed.
+    - If option is passed all assigned hostgroups that are not passed will be unassigned from the group.
     required: false
   state:
-    description: State to ensure
+    description:
+    - State to ensure.
     required: false
     default: "present"
     choices: ["present", "absent"]
