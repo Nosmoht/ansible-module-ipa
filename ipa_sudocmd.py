@@ -233,7 +233,7 @@ def main():
     try:
         client.login()
         changed, sudocmd = ensure(module, client)
-        module.exit_json(changed=changed, sudorule=sudocmd)
+        module.exit_json(changed=changed, sudocmd=sudocmd)
     except Exception as e:
         module.fail_json(msg=e.message)
 
