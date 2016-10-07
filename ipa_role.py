@@ -6,37 +6,44 @@ DOCUMENTATION = '''
 module: ipa_role
 short_description: Manage FreeIPA role
 description:
-- Add, modify and delete a role within IPA server using IPA API
+- Add, modify and delete a role within FreeIPA server using FreeIPA API
 options:
   cn:
-    description: Canonical name
+    description:
+    - Role name.
+    - Can not be changed as it is the unique identifier.
     required: true
     aliases: ['name']
   description:
-    description: Role description
+    description:
+    - A description of this role-group.
     required: false
   group:
     description:
-    - List of group names assign.
-    - If an empty list is passed all assigned groups will be removed from the role.
+    - List of group names assign to this role.
+    - If an empty list is passed all assigned groups will be unassigned from the role.
     - If option is omitted groups will not be checked or changed.
+    - If option is passed all assigned groups that are not passed will be unassigned from the role.
   host:
     description:
     - List of host names to assign.
-    - If an empty list is passed all assigned hosts will be removed from the role.
+    - If an empty list is passed all assigned hosts will be unassigned from the role.
     - If option is omitted hosts will not be checked or changed.
+    - If option is passed all assigned hosts that are not passed will be unassigned from the role.
     required: false
   hostgroup:
     description:
     - List of host group names to assign.
     - If an empty list is passed all assigned host groups will be removed from the role.
     - If option is omitted host groups will not be checked or changed.
+    - If option is passed all assigned hostgroups that are not passed will be unassigned from the role.
     required: false
   service:
     description:
     - List of service names to assign.
     - If an empty list is passed all assigned services will be removed from the role.
     - If option is omitted services will not be checked or changed.
+    - If option is passed all assigned services that are not passed will be removed from the role.
     required: false
   state:
     description: State to ensure
@@ -76,8 +83,8 @@ requirements:
 '''
 
 EXAMPLES = '''
-- name: ensure role is present
-  ipa_role:
+# Ensure role is present
+- ipa_role:
     name: dba
     description: Database Administrators
     state: present
@@ -88,8 +95,8 @@ EXAMPLES = '''
     ipa_user: admin
     ipa_pass: topsecret
 
-- name: ensure role with certain details
-  ipa_role:
+# Ensure role with certain details
+- ipa_role:
     name: another-role
     description: Just another role
     group:
@@ -101,8 +108,8 @@ EXAMPLES = '''
     service:
     - service01
 
-- name: ensure role is absent
-  ipa_role:
+# Ensure role is absent
+- ipa_role:
     name: dba
     state: absent
     ipa_host: ipa.example.com
