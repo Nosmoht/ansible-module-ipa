@@ -1,6 +1,8 @@
 Ansible IPA modules
 ==========
 
+__IMPORTANT__: A PR is opened to add these modules to ansible-extra-modules. Please use it to report issues. https://github.com/ansible/ansible-modules-extras/pull/3247.
+
 - [Introduction](#introduction)
 - [Usage](#usage)
  - [Group](#group)
